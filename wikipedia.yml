@@ -1,0 +1,43 @@
+name: "📚 Wikipedia summary"
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Topic to look up"
+        required: true
+        default: "Mauritius"
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch summary
+        run: |
+          ENC=$(jq -rn --arg t "${{ inputs.topic }}" '$t|@uri')
+          J=$(curl -s --max-time 20 "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&redirects=1&titles=${ENC}")
+          PAGE=$(jq -r '.query.pages | to_entries[0].value' <<< "$J")
+          TITLE=$(jq -r '.title' <<< "$PAGE")
+          MISSING=$(jq -r '.missing // empty' <<< "$PAGE")
+          EXTRACT=$(jq -r '.extract // ""' <<< "$PAGE")
+          URL="https://en.wikipedia.org/wiki/$(jq -rn --arg t "$TITLE" '$t|@uri')"
+          if [ -n "$MISSING" ] || [ -z "$EXTRACT" ]; then
+            echo "## 📚 Wikipedia" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No article found for \`${{ inputs.topic }}\`." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## 📚 [$TITLE]($URL)"
+            echo ""
+            echo "$EXTRACT" | head -c 1200
+            echo ""
+            echo ""
+            echo "_Full intro saved as artifact._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf '# %s\n\n%s\n\n%s\n' "$TITLE" "$EXTRACT" "$URL" > wiki.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wiki-summary
+          path: wiki.md

@@ -1,0 +1,78 @@
+name: "⏰ Cron explainer"
+
+on:
+  workflow_dispatch:
+    inputs:
+      expression:
+        description: 'Cron expression (5 fields, e.g. "0 9 * * 1")'
+        required: true
+        default: "0 9 * * 1"
+
+jobs:
+  explain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain
+        env:
+          EXPR: ${{ inputs.expression }}
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const expr = process.env.EXPR.trim();
+          const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+          const DOWS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+          function field(v, names, min, max, plural) {
+            if (v === '*') return { kind: 'every' };
+            let m = v.match(/^\*\/(\d+)$/);
+            if (m) return { kind: 'step', n: +m[1], text: `every ${m[1]} ${plural}` };
+            const items = [];
+            const fmt = n => names ? names[n % names.length] : String(n).padStart(2, '0');
+            for (const p of v.split(',')) {
+              const r = p.match(/^(\d+)-(\d+)$/);
+              if (r) {
+                const a = +r[1], b = +r[2];
+                if (a < min || b > max || a > b) throw new Error(`bad range "${p}"`);
+                items.push(a === b ? fmt(a) : `${fmt(a)}–${fmt(b)}`);
+                continue;
+              }
+              const n = Number(p);
+              if (!Number.isInteger(n) || n < min || n > max) throw new Error(`bad value "${p}"`);
+              items.push(fmt(n));
+            }
+            const list = items.length > 1 ? items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1] : items[0];
+            return { kind: 'list', text: list, single: items.length === 1 ? items[0] : null };
+          }
+
+          try {
+            const f = expr.split(/\s+/);
+            if (f.length !== 5) throw new Error('need exactly 5 fields (minute hour day month weekday)');
+            const mi = field(f[0], null, 0, 59, 'minutes');
+            const h = field(f[1], null, 0, 23, 'hours');
+            const dom = field(f[2], null, 1, 31, 'days');
+            const mon = field(f[3], MONTHS, 1, 12, 'months');
+            const dow = field(f[4], DOWS, 0, 7, 'days');
+
+            let time;
+            if (mi.kind === 'every' && h.kind === 'every') time = 'Every minute';
+            else if (mi.kind === 'step' && h.kind === 'every') time = `Every ${mi.n} minutes`;
+            else if (mi.kind === 'every') time = `Every minute during hour ${h.text}`;
+            else if (h.kind === 'every') time = `At ${mi.text} minutes past every hour`;
+            else if (mi.single && h.single) time = `At ${h.single}:${mi.single}`;
+            else time = `At minutes ${mi.text}, hours ${h.text}`;
+
+            const quals = [];
+            if (dom.kind !== 'every') quals.push(`on day ${dom.text} of the month`);
+            if (mon.kind !== 'every') quals.push(`in ${mon.text}`);
+            if (dow.kind !== 'every') {
+              const plural = dow.kind === 'list' && !/[–,]| and /.test(dow.text) && dow.text.endsWith('day') ? 's' : '';
+              quals.push(`on ${dow.text}${plural}`);
+            }
+            const out = time + (quals.length ? ', ' + quals.join(', ') : '');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## ⏰ Cron explainer\n\n\`${expr}\`\n\n# ${out}\n`);
+            console.log(out);
+          } catch (e) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## ⏰ Cron explainer\n\n❌ ${e.message}\n`);
+            process.exit(1);
+          }
+          EOF

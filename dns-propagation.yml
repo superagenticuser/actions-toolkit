@@ -1,0 +1,31 @@
+name: "📡 DNS propagation check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to check (no https://)"
+        required: true
+        default: "example.com"
+
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query multiple resolvers
+        run: |
+          D="${{ inputs.domain }}"
+          {
+            echo "## 📡 DNS propagation — \`$D\`"
+            echo ""
+            echo "| Resolver | A records |"
+            echo "|----------|-----------|"
+            for s in "8.8.8.8|Google" "1.1.1.1|Cloudflare" "9.9.9.9|Quad9" "208.67.222.222|OpenDNS"; do
+              IP=${s%%|*}; NAME=${s##*|}
+              A=$(dig +short +time=5 +tries=2 "@$IP" "$D" A | tr '\n' ' ')
+              [ -z "$A" ] && A="—"
+              echo "| $NAME (\`$IP\`) | \`$A\` |"
+            done
+            echo ""
+            echo "_Matching records everywhere = fully propagated._"
+          } >> "$GITHUB_STEP_SUMMARY"

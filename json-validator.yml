@@ -1,0 +1,45 @@
+name: "✅ JSON / YAML validator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      format:
+        description: "Format to validate"
+        type: choice
+        options: [json, yaml]
+        default: json
+      text:
+        description: "Paste the document here"
+        required: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate
+        env:
+          TEXT: ${{ inputs.text }}
+          FORMAT: ${{ inputs.format }}
+        run: |
+          if [ "$FORMAT" = "json" ]; then
+            node -e 'const t=process.env.TEXT; const o=JSON.parse(t); console.log("valid JSON"); console.log(JSON.stringify(o,null,2).slice(0,2000));' \
+              && echo "## ✅ Valid JSON" >> "$GITHUB_STEP_SUMMARY" \
+              || { echo "## ❌ Invalid JSON"; node -e 'try{JSON.parse(process.env.TEXT)}catch(e){console.log(e.message)}'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            python3 - <<'EOF'
+          import os, sys
+          try:
+              import yaml
+          except ImportError:
+              os.system('pip install --quiet pyyaml')
+              import yaml
+          try:
+              o = yaml.safe_load(os.environ['TEXT'])
+              print("valid YAML")
+              print(str(o)[:2000])
+              open(os.environ['GITHUB_STEP_SUMMARY'],'a').write("## ✅ Valid YAML\n")
+          except Exception as e:
+              open(os.environ['GITHUB_STEP_SUMMARY'],'a').write(f"## ❌ Invalid YAML\n\n```\n{e}\n```\n")
+              sys.exit(1)
+          EOF
+          fi

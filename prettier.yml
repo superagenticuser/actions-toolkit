@@ -1,0 +1,44 @@
+name: "🧹 Prettier check / fix"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check only, or fix and open a PR"
+        type: choice
+        options: [check, fix]
+        default: check
+      path:
+        description: "Directory to format"
+        default: "."
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check formatting
+        if: inputs.mode == 'check'
+        run: npx --yes prettier --check "${{ inputs.path }}"
+
+      - name: Fix formatting
+        if: inputs.mode == 'fix'
+        run: npx --yes prettier --write "${{ inputs.path }}"
+
+      - uses: peter-evans/create-pull-request@v7
+        if: inputs.mode == 'fix'
+        with:
+          commit-message: "style: prettier auto-format"
+          title: "🧹 Prettier auto-format"
+          body: "Automated formatting fixes from the Prettier workflow."
+          branch: chore/prettier-fix
+          delete-branch: true

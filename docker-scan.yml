@@ -1,0 +1,40 @@
+name: "🐳 Docker build + scan"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dockerfile:
+        description: "Path to Dockerfile"
+        default: "Dockerfile"
+      context:
+        description: "Build context"
+        default: "."
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f "${{ inputs.dockerfile }}" -t scan-target "${{ inputs.context }}"
+
+      - name: Trivy vulnerability scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL --format table --no-progress \
+            scan-target 2>&1 | tee trivy.txt | head -60
+          {
+            echo "## 🐳 Trivy scan (HIGH/CRITICAL)"
+            echo ""
+            echo '```'
+            head -40 trivy.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy.txt

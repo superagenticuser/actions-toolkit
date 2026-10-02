@@ -1,0 +1,28 @@
+name: "📣 ntfy notifier"
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "ntfy.sh topic (pick a random hard-to-guess name)"
+        required: true
+      message:
+        description: "Message to send"
+        default: "Your workflow finished!"
+      title:
+        description: "Notification title"
+        default: "Actions Toolkit"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send push notification
+        run: |
+          curl -s --max-time 20 \
+            -H "Title: ${{ inputs.title }}" \
+            -d "${{ inputs.message }}" \
+            "https://ntfy.sh/${{ inputs.topic }}"
+          echo "## 📣 Notification sent to ntfy.sh/${{ inputs.topic }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_Subscribe to that topic in the ntfy app (Android/iOS) to get it on your phone._" >> "$GITHUB_STEP_SUMMARY"

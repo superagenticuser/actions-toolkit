@@ -1,0 +1,41 @@
+name: "🛡️ Dependency audit"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: npm audit
+        if: hashFiles('package-lock.json') != ''
+        run: |
+          npm ci --ignore-scripts --no-audit 2>/dev/null || npm install --ignore-scripts --no-audit
+          npm audit --json > audit.json || true
+          {
+            echo "## 🛡️ npm audit"
+            echo ""
+            jq -r '"Vulnerabilities: info=\(.metadata.vulnerabilities.info // 0) low=\(.metadata.vulnerabilities.low // 0) moderate=\(.metadata.vulnerabilities.moderate // 0) high=\(.metadata.vulnerabilities.high // 0) critical=\(.metadata.vulnerabilities.critical // 0)"' audit.json
+            echo ""
+            echo '```'
+            jq -r '.vulnerabilities // {} | to_entries | sort_by(.value.severity) | .[] | "\(.value.severity | ascii_upcase | .[0:4]) \(.key)"' audit.json 2>/dev/null | head -30
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: pip audit
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install --quiet pip-audit -r requirements.txt 2>/dev/null || pip install --quiet pip-audit
+          {
+            echo "## 🛡️ pip audit"
+            echo ""
+            echo '```'
+            pip-audit -r requirements.txt 2>&1 | head -40 || echo "(audit unavailable)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

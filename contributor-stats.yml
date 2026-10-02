@@ -1,0 +1,26 @@
+name: "📊 Contributor stats"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Summarize contributors
+        run: |
+          {
+            echo "## 📊 Contributor stats"
+            echo ""
+            echo '```'
+            git shortlog -sne --all --no-merges | head -20
+            echo '```'
+            echo ""
+            TOTAL=$(git rev-list --count HEAD)
+            FIRST=$(git log --reverse --format='%cs' | head -1)
+            echo "Total commits: **${TOTAL}** · History since: **${FIRST}**"
+          } >> "$GITHUB_STEP_SUMMARY"

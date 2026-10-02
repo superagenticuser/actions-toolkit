@@ -1,0 +1,35 @@
+name: "🔀 Branch conflict detector"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  conflicts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check branches for merge conflicts
+        run: |
+          git fetch origin
+          MAIN=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
+          BASE="origin/${MAIN}"
+          {
+            echo "## 🔀 Conflict check vs \`${BASE}\`"
+            echo ""
+            echo "| Branch | Merges cleanly |"
+            echo "|--------|----------------|"
+            n=0
+            for b in $(git branch -r --format='%(refname:short)' | grep -v 'HEAD' | grep -v "${BASE}$" | head -50); do
+              n=$((n+1))
+              MB=$(git merge-base "$BASE" "$b" 2>/dev/null) || continue
+              if git merge-tree "$MB" "$BASE" "$b" | grep -q '^<<<<<<<'; then
+                echo "| \`${b#origin/}\` | ⚠️ conflicts |"
+              else
+                echo "| \`${b#origin/}\` | ✅ clean |"
+              fi
+            done
+            [ "$n" -eq 0 ] && echo "_No other branches._"
+          } >> "$GITHUB_STEP_SUMMARY"

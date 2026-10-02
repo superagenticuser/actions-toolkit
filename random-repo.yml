@@ -1,0 +1,25 @@
+name: "🎰 Random repo discoverer"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find a random public repo
+        run: |
+          SINCE=$((RANDOM % 120000000))
+          PICK=$(curl -s --max-time 20 "https://api.github.com/repositories?since=${SINCE}" \
+            | jq -r '.[range(0;30;7)] | "\(.full_name)|\(.description // "no description")|\(.language // "?")|\(.stargazers_count)|\(.html_url)"' \
+            | shuf -n 1)
+          IFS='|' read -r NAME DESC LANG STARS URL <<< "$PICK"
+          {
+            echo "## 🎰 Random repo"
+            echo ""
+            echo "# [${NAME}](${URL})"
+            echo ""
+            echo "${DESC}"
+            echo ""
+            echo "⭐ ${STARS} · 🛠️ ${LANG}"
+          } >> "$GITHUB_STEP_SUMMARY"

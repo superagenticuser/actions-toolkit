@@ -1,0 +1,35 @@
+name: "📋 Issue exporter"
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "Which issues"
+        type: choice
+        options: [open, closed, all]
+        default: all
+
+permissions:
+  issues: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export issues to CSV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue list --state "${{ inputs.state }}" --limit 1000 \
+            --json number,title,state,author,labels,createdAt,closedAt,url \
+            | jq -r '["number","title","state","author","labels","created","closed","url"],
+                (.[] | [.number, .title, .state, .author.login,
+                        ([.labels[].name] | join(";")), .createdAt, (.closedAt // ""), .url]) | @csv' \
+            > issues.csv
+          N=$(($(wc -l < issues.csv) - 1))
+          echo "## 📋 Issue exporter — ${N} issues (${{ inputs.state }})" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issues
+          path: issues.csv

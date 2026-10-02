@@ -1,0 +1,40 @@
+name: "🧪 Test runner"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: npm test (if present)
+        if: hashFiles('package.json') != ''
+        run: |
+          if jq -e '.scripts.test' package.json > /dev/null; then
+            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
+            npm test
+          else
+            echo "No test script — skipping."
+          fi
+
+      - name: pytest (if present)
+        if: hashFiles('**/test_*.py') != '' || hashFiles('**/*_test.py') != ''
+        run: |
+          pip install --quiet pytest
+          python -m pytest -q
+
+      - name: go test (if present)
+        if: hashFiles('go.mod') != ''
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Run go tests
+        if: hashFiles('go.mod') != ''
+        run: go test ./...

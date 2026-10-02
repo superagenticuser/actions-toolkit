@@ -1,0 +1,41 @@
+name: "💱 Currency converter"
+
+on:
+  workflow_dispatch:
+    inputs:
+      amount:
+        description: "Amount"
+        default: "100"
+      from:
+        description: "From currency (USD, EUR, MUR…)"
+        default: "USD"
+      to:
+        description: "To currency"
+        default: "MUR"
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Convert (keyless rates API)
+        run: |
+          FROM=$(echo "${{ inputs.from }}" | tr '[:lower:]' '[:upper:]')
+          TO=$(echo "${{ inputs.to }}" | tr '[:lower:]' '[:upper:]')
+          AMT="${{ inputs.amount }}"
+          J=$(curl -s --max-time 20 "https://open.er-api.com/v6/latest/${FROM}")
+          RATE=$(jq -r ".rates[\"$TO\"]" <<< "$J")
+          DATE=$(jq -r '.time_last_update_utc' <<< "$J")
+          if [ "$RATE" = "null" ] || [ -z "$RATE" ]; then
+            echo "## 💱 Currency converter" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Unknown currency code. Try USD, EUR, GBP, MUR, INR…" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          RESULT=$(python3 -c "print(round(float('$AMT') * float('$RATE'), 2))")
+          {
+            echo "## 💱 Currency converter"
+            echo ""
+            echo "# ${AMT} ${FROM} = ${RESULT} ${TO}"
+            echo ""
+            echo "Rate: 1 ${FROM} = ${RATE} ${TO} · _${DATE}_"
+          } >> "$GITHUB_STEP_SUMMARY"

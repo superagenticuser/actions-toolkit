@@ -1,0 +1,58 @@
+name: "🔄 Data format converter"
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "Source format"
+        type: choice
+        options: [json, yaml, csv]
+        default: json
+      to:
+        description: "Target format"
+        type: choice
+        options: [json, yaml, csv]
+        default: yaml
+      text:
+        description: "Paste the data here"
+        required: true
+        default: '{"hello": "world"}'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Convert
+        env:
+          TEXT: ${{ inputs.text }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          pip install --quiet pyyaml
+          python3 <<'EOF'
+          import os, json, csv, io, sys
+          import yaml
+          text, frm, to = os.environ['TEXT'], os.environ['FROM'], os.environ['TO']
+          if frm == 'json': data = json.loads(text)
+          elif frm == 'yaml': data = yaml.safe_load(text)
+          elif frm == 'csv':
+              rows = list(csv.DictReader(io.StringIO(text)))
+              data = rows
+          if to == 'json': out = json.dumps(data, indent=2, ensure_ascii=False)
+          elif to == 'yaml': out = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+          elif to == 'csv':
+              if not isinstance(data, list): data = [data]
+              buf = io.StringIO()
+              w = csv.DictWriter(buf, fieldnames=data[0].keys())
+              w.writeheader(); w.writerows(data)
+              out = buf.getvalue()
+          open('converted.txt', 'w').write(out)
+          summary = open(os.environ['GITHUB_STEP_SUMMARY'], 'a')
+          summary.write(f"## 🔄 {frm.upper()} → {to.upper()}\n\n```\n{out[:2500]}\n```\n")
+          print('done')
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: converted
+          path: converted.txt

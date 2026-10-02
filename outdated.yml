@@ -1,0 +1,37 @@
+name: "📦 Outdated packages"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  outdated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check npm packages
+        if: hashFiles('package.json') != ''
+        run: |
+          {
+            echo "## 📦 npm outdated"
+            echo ""
+            echo '```'
+            npm outdated || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check pip packages
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install --quiet -r requirements.txt 2>/dev/null || true
+          {
+            echo "## 📦 pip outdated"
+            echo ""
+            echo '```'
+            pip list --outdated 2>/dev/null || echo "(nothing installed / no data)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

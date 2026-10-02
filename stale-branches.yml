@@ -1,0 +1,40 @@
+name: "🌿 Stale branches"
+
+on:
+  workflow_dispatch:
+    inputs:
+      delete_merged:
+        description: "Delete branches already merged into the default branch"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  branches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List stale branches
+        run: |
+          git fetch --prune origin
+          MAIN=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
+          {
+            echo "## 🌿 Branches vs \`${MAIN}\`"
+            echo ""
+            echo "| Branch | Merged | Last commit |"
+            echo "|--------|--------|-------------|"
+            for b in $(git branch -r --format='%(refname:short)' | grep -v 'HEAD' | grep -v "origin/${MAIN}$"); do
+              SHORT=${b#origin/}
+              if git merge-base --is-ancestor "$b" "origin/${MAIN}" 2>/dev/null; then M="✅"; else M="❌"; fi
+              LAST=$(git log -1 --format='%cs' "$b")
+              echo "| \`$SHORT\` | $M | $LAST |"
+              if [ "${{ inputs.delete_merged }}" = "true" ] && [ "$M" = "✅" ]; then
+                git push origin --delete "$SHORT" && echo "deleted $SHORT"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

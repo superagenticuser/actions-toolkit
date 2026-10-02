@@ -1,0 +1,38 @@
+name: "📜 License audit"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: npm licenses
+        if: hashFiles('package.json') != ''
+        run: |
+          npm install --ignore-scripts --no-audit 2>/dev/null || true
+          {
+            echo "## 📜 npm dependency licenses"
+            echo ""
+            echo '```'
+            npx --yes license-checker --summary --production 2>/dev/null || echo "(unavailable)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: pip licenses
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install --quiet pip-licenses -r requirements.txt 2>/dev/null || pip install --quiet pip-licenses
+          {
+            echo "## 📜 pip dependency licenses"
+            echo ""
+            echo '```'
+            pip-licenses --from=mixed 2>/dev/null | head -40 || echo "(unavailable)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

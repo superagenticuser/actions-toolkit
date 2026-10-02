@@ -1,0 +1,46 @@
+name: "🗑️ Workflow run cleanup"
+
+on:
+  workflow_dispatch:
+    inputs:
+      older_than_days:
+        description: "Delete completed runs older than N days"
+        default: "30"
+      dry_run:
+        description: "List only, don't delete"
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune old runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          CUTOFF=$(date -u -d "${{ inputs.older_than_days }} days ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Cutoff: $CUTOFF (dry_run=${{ inputs.dry_run }})"
+          DELETED=0
+          for id in $(gh api "repos/${REPO}/actions/runs?per_page=100&status=completed" --paginate \
+              -q ".workflow_runs[] | select(.created_at < \"$CUTOFF\") | .id"); do
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "would delete run $id"
+            else
+              gh api -X DELETE "repos/${REPO}/actions/runs/${id}" --silent && echo "deleted run $id"
+            fi
+            DELETED=$((DELETED+1))
+          done
+          {
+            echo "## 🗑️ Workflow run cleanup"
+            echo ""
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "**Dry run** — ${DELETED} runs would be deleted (older than ${{ inputs.older_than_days }} days)."
+            else
+              echo "Deleted **${DELETED}** runs older than ${{ inputs.older_than_days }} days."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,34 @@
+name: "📥 Artifact downloader"
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID (leave empty for the latest run)"
+        default: ""
+
+permissions:
+  actions: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "${{ inputs.run_id }}" ]; then
+            ID=$(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')
+          else
+            ID="${{ inputs.run_id }}"
+          fi
+          echo "Downloading artifacts from run $ID"
+          gh run download "$ID" --dir downloaded
+          find downloaded -type f | head -30
+          echo "## 📥 Downloaded artifacts from run \`$ID\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: downloaded-artifacts
+          path: downloaded/

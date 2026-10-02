@@ -1,0 +1,31 @@
+name: "🐘 Repo bloat finder"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bloat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find the biggest files
+        run: |
+          {
+            echo "## 🐘 Biggest files in working tree"
+            echo ""
+            echo '```'
+            find . -path ./.git -prune -o -type f -printf '%s %p\n' 2>/dev/null \
+              | sort -rn | head -15 | awk '{printf "%.1f MB  %s\n", $1/1048576, $2}'
+            echo '```'
+            echo "## 🐘 Biggest blobs in git history"
+            echo ""
+            echo '```'
+            git rev-list --objects --all \
+              | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' \
+              | grep '^blob' | sort -k3 -rn | head -10 \
+              | awk '{printf "%.1f MB  %s\n", $3/1048576, $4}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

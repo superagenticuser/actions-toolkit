@@ -1,0 +1,62 @@
+name: "🖼️ OG image generator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Card title"
+        required: true
+        default: "My Project"
+      subtitle:
+        description: "Card subtitle"
+        default: "Built with the Actions Toolkit"
+      theme:
+        description: "Theme"
+        type: choice
+        options: [dark, light]
+        default: dark
+
+jobs:
+  og:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: browser-actions/setup-chrome@latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install puppeteer-core
+
+      - name: Render card
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          OG_TITLE: ${{ inputs.title }}
+          OG_SUB: ${{ inputs.subtitle }}
+          OG_THEME: ${{ inputs.theme }}
+        run: |
+          node <<'EOF'
+          const puppeteer = require('puppeteer-core');
+          const dark = process.env.OG_THEME !== 'light';
+          const bg = dark ? '#0b1020' : '#f8fafc';
+          const fg = dark ? '#ffffff' : '#0f172a';
+          const accent = dark ? '#67e8f9' : '#0284c7';
+          const html = `<html><body style="margin:0;width:1200px;height:630px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:${bg};font-family:sans-serif;text-align:center;padding:80px;box-sizing:border-box;">
+            <div style="font-size:88px;font-weight:900;color:${fg};line-height:1.15;">${process.env.OG_TITLE}</div>
+            <div style="font-size:40px;color:${accent};margin-top:28px;">${process.env.OG_SUB}</div>
+          </body></html>`;
+          (async () => {
+            const browser = await puppeteer.launch({ executablePath: process.env.CHROME_PATH, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 2 });
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+            await page.screenshot({ path: 'og.png' });
+            await browser.close();
+            console.log('og.png written');
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: og-image
+          path: og.png

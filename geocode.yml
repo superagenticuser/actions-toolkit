@@ -1,0 +1,27 @@
+name: "🗺️ Geocoder"
+
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: "Address or place name"
+        required: true
+        default: "Port Louis, Mauritius"
+
+jobs:
+  geocode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Geocode (Open-Meteo, no key needed)
+        run: |
+          ENC=$(jq -rn --arg a "${{ inputs.address }}" '$a|@uri')
+          J=$(curl -s --max-time 20 "https://geocoding-api.open-meteo.com/v1/search?name=${ENC}&count=5&format=json")
+          {
+            echo "## 🗺️ Geocoding: \`${{ inputs.address }}\`"
+            echo ""
+            echo "| Place | Country | Latitude | Longitude | Map |"
+            echo "|-------|---------|----------|-----------|-----|"
+            jq -r '.results[]? | "| \(.name) | \(.country // "—") | \(.latitude) | \(.longitude) | [open](https://www.openstreetmap.org/?mlat=\(.latitude)&mlon=\(.longitude)#map=12/\(.latitude)/\(.longitude)) |"' <<< "$J"
+            N=$(jq '.results | length' <<< "$J")
+            [ "$N" -eq 0 ] && echo "_No matches._"
+          } >> "$GITHUB_STEP_SUMMARY"

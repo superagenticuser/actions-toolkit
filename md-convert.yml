@@ -1,0 +1,33 @@
+name: "📝 Markdown to HTML"
+
+on:
+  workflow_dispatch:
+    inputs:
+      markdown:
+        description: "Paste markdown here"
+        required: true
+        default: "# Hello\n\nWrite **markdown** here."
+      title:
+        description: "Document title"
+        default: "Document"
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Convert with pandoc
+        env:
+          MD: ${{ inputs.markdown }}
+        run: |
+          printf '%s' "$MD" > doc.md
+          pandoc -f markdown -t html5 -s --metadata "title=${{ inputs.title }}" doc.md -o doc.html
+          {
+            echo "## 📝 Markdown → HTML"
+            echo ""
+            echo "Converted **${{ inputs.title }}** → \`doc.html\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: html-doc
+          path: doc.html

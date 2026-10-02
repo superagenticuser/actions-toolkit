@@ -1,0 +1,33 @@
+name: "⏱️ Pomodoro timer"
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Focus minutes"
+        default: "25"
+      ntfy_topic:
+        description: "ntfy.sh topic for the done ping (optional)"
+        default: ""
+
+jobs:
+  focus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Focus…
+        run: |
+          MIN="${{ inputs.minutes }}"
+          START=$(date -u '+%H:%M')
+          echo "## ⏱️ Focusing for ${MIN} minutes (started ${START} UTC)…" >> "$GITHUB_STEP_SUMMARY"
+          sleep $((MIN * 60))
+          END=$(date -u '+%H:%M')
+          {
+            echo "## ⏱️ Done! ${MIN} minutes elapsed (${START} → ${END} UTC)"
+            echo ""
+            echo "Take a 5-minute break. ☕"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ inputs.ntfy_topic }}" ]; then
+            curl -s --max-time 20 -H "Title: Pomodoro done" \
+              -d "${MIN}-minute focus session complete. Take a break!" \
+              "https://ntfy.sh/${{ inputs.ntfy_topic }}"
+          fi

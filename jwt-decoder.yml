@@ -1,0 +1,38 @@
+name: "🔓 JWT decoder"
+
+on:
+  workflow_dispatch:
+    inputs:
+      token:
+        description: "JWT to decode (don't use production secrets)"
+        required: true
+
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decode (no verification)
+        env:
+          TOKEN: ${{ inputs.token }}
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          try {
+            const [h, p, s] = process.env.TOKEN.trim().split('.');
+            if (!h || !p) throw new Error('not a JWT (need header.payload[.signature])');
+            const dec = b => JSON.parse(Buffer.from(b, 'base64url').toString('utf8'));
+            const header = JSON.stringify(dec(h), null, 2);
+            const payload = JSON.stringify(dec(p), null, 2);
+            let md = '## 🔓 JWT decoded (signature NOT verified)\n\n**Header**\n```json\n' + header + '\n```\n\n**Payload**\n```json\n' + payload + '\n```\n';
+            const pl = dec(p);
+            if (pl.exp) {
+              const exp = new Date(pl.exp * 1000);
+              md += `\nExpires: ${exp.toISOString()} (${exp > new Date() ? 'valid' : '⚠️ EXPIRED'})\n`;
+            }
+            md += '\n_Heads up: this only decodes — it does not verify the signature._\n';
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+          } catch (e) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## 🔓 JWT decoder\n\n❌ ${e.message}\n`);
+            process.exit(1);
+          }
+          EOF

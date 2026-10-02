@@ -1,0 +1,55 @@
+name: "🔎 Tech stack detector"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to inspect"
+        required: true
+        default: "https://example.com"
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sniff headers and HTML
+        run: |
+          U="${{ inputs.url }}"
+          HDR=$(curl -sI --max-time 20 "$U")
+          BODY=$(curl -s --max-time 20 -L "$U" | head -c 60000)
+          {
+            echo "## 🔎 Tech stack — \`$U\`"
+            echo ""
+            detect() { grep -qi "$1" <<< "$2" && echo "- $3"; }
+            detect "wp-content|wp-includes" "$BODY" "WordPress"
+            detect "_next/static" "$BODY" "Next.js"
+            detect "cdn.shopify.com|myshopify" "$BODY" "Shopify"
+            detect "__NEXT_DATA__" "$BODY" "Next.js (data)"
+            detect "nuxt" "$BODY" "Nuxt.js"
+            detect "ng-version" "$BODY" "Angular"
+            detect "data-reactroot|react" "$BODY" "React"
+            detect "wix.com" "$BODY" "Wix"
+            detect "squarespace" "$BODY" "Squarespace"
+            detect "webflow" "$BODY" "Webflow"
+            detect "ghost" "$BODY" "Ghost"
+            detect "hubspot" "$BODY" "HubSpot"
+            detect "drupal" "$BODY" "Drupal"
+            detect "jekyll" "$BODY" "Jekyll"
+            detect "gatsby" "$BODY" "Gatsby"
+            detect "cloudflare" "$HDR" "Cloudflare (CDN)"
+            detect "x-vercel-id" "$HDR" "Vercel (hosting)"
+            detect "x-nf-request-id\|netlify" "$HDR" "Netlify (hosting)"
+            detect "akamai" "$HDR" "Akamai (CDN)"
+            detect "x-powered-by:.*php\|.php" "$BODY$HDR" "PHP"
+            detect "x-powered-by:.*asp" "$HDR" "ASP.NET"
+            detect "server:.*nginx" "$HDR" "nginx"
+            detect "server:.*apache" "$HDR" "Apache"
+            detect '<meta name="generator"' "$BODY" "Generator: $(grep -oi '<meta name="generator"[^>]*' <<< "$BODY" | head -1 | sed 's/.*content="\([^"]*\)".*/\1/')"
+            echo ""
+            echo "<details><summary>Raw response headers</summary>"
+            echo ""
+            echo '```'
+            head -25 <<< "$HDR"
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"

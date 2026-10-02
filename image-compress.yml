@@ -1,0 +1,73 @@
+name: "🖼️ Image compressor"
+
+on:
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: "JPEG quality (1-100)"
+        default: "80"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install --no-save sharp
+
+      - name: Compress images
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const sharp = require('sharp');
+          const Q = parseInt(process.env.Q, 10) || 80;
+          const exts = new Set(['.png', '.jpg', '.jpeg']);
+          const skip = ['node_modules', '.git'];
+          let saved = 0, files = [];
+          async function walk(dir) {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (skip.includes(e.name)) continue;
+              const p = path.join(dir, e.name);
+              if (e.isDirectory()) await walk(p);
+              else if (exts.has(path.extname(e.name).toLowerCase())) files.push(p);
+            }
+          }
+          (async () => {
+            await walk('.');
+            for (const f of files) {
+              const before = fs.statSync(f).size;
+              const img = sharp(f);
+              const meta = await img.metadata();
+              const buf = meta.format === 'png'
+                ? await img.png({ compressionLevel: 9, palette: true }).toBuffer()
+                : await img.jpeg({ quality: Q, mozjpeg: true }).toBuffer();
+              if (buf.length < before) {
+                fs.writeFileSync(f, buf);
+                saved += before - buf.length;
+                console.log(`shrunk ${f}: ${before} -> ${buf.length}`);
+              }
+            }
+            console.log(`total saved: ${(saved / 1024).toFixed(1)} KB`);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `## 🖼️ Image compressor\n\nCompressed ${files.length} images, saved **${(saved / 1024).toFixed(1)} KB**.\n`);
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+        env:
+          Q: ${{ inputs.quality }}
+
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: compress images"
+          title: "🖼️ Compressed images"
+          body: "Automated image compression from the Image compressor workflow."
+          branch: chore/compress-images
+          delete-branch: true

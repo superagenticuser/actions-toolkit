@@ -1,0 +1,34 @@
+name: "🌐 Uptime check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "One URL per line"
+        required: true
+        default: "https://example.com"
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe URLs
+        env:
+          URLS: ${{ inputs.urls }}
+        run: |
+          FAIL=0
+          {
+            echo "## 🌐 Uptime check — $(date -u '+%H:%M UTC')"
+            echo ""
+            echo "| URL | Status | Time | Result |"
+            echo "|-----|--------|------|--------|"
+            while IFS= read -r u; do
+              u=$(echo "$u" | xargs)
+              [ -z "$u" ] && continue
+              OUT=$(curl -s -o /dev/null --max-time 25 -w "%{http_code} %{time_total}" "$u" || echo "000 0")
+              CODE=$(awk '{print $1}' <<< "$OUT"); TIME=$(awk '{print $2}' <<< "$OUT")
+              if [[ "$CODE" =~ ^[23] ]]; then R="✅ up"; else R="❌ down"; FAIL=1; fi
+              echo "| \`$u\` | $CODE | ${TIME}s | $R |"
+            done <<< "$URLS"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $FAIL

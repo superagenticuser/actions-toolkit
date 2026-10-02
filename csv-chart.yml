@@ -1,0 +1,55 @@
+name: "📊 CSV to chart"
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv:
+        description: "CSV data (first row = headers, first column = labels)"
+        required: true
+        default: "Month,Sales\nJan,120\nFeb,150\nMar,130"
+      chart_type:
+        description: "Chart type"
+        type: choice
+        options: [line, bar]
+        default: line
+      title:
+        description: "Chart title"
+        default: "Chart"
+
+jobs:
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Render chart
+        env:
+          CSV: ${{ inputs.csv }}
+          TYPE: ${{ inputs.chart_type }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          pip install --quiet matplotlib
+          MPLBACKEND=Agg python3 <<'EOF'
+          import csv, io, os
+          import matplotlib.pyplot as plt
+          rows = [r for r in csv.reader(io.StringIO(os.environ['CSV'])) if r]
+          header, data = rows[0], rows[1:]
+          labels = [r[0] for r in data]
+          plt.figure(figsize=(10, 6))
+          for i in range(1, len(header)):
+              vals = [float(r[i]) for r in data]
+              if os.environ['TYPE'] == 'bar':
+                  plt.bar(labels, vals, label=header[i])
+              else:
+                  plt.plot(labels, vals, marker='o', label=header[i])
+          plt.title(os.environ['TITLE'])
+          plt.legend()
+          plt.xticks(rotation=30)
+          plt.tight_layout()
+          plt.savefig('chart.png', dpi=150)
+          print('chart.png written')
+          EOF
+          echo "## 📊 Chart rendered — \`${{ inputs.title }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chart
+          path: chart.png

@@ -1,0 +1,43 @@
+name: "📉 Build size report"
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_command:
+        description: "Build command"
+        default: "npm run build"
+      output_dir:
+        description: "Build output directory"
+        default: "dist"
+
+jobs:
+  size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build and measure
+        run: |
+          if [ ! -f package.json ]; then echo "No package.json — nothing to build."; exit 0; fi
+          npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
+          ${{ inputs.build_command }}
+          {
+            echo "## 📉 Build size — \`${{ inputs.output_dir }}/\`"
+            echo ""
+            echo '```'
+            du -sh "${{ inputs.output_dir }}"/*
+            echo "---"
+            du -sh "${{ inputs.output_dir }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          du -sb "${{ inputs.output_dir }}"/* | sort -rn | head -20 \
+            | awk '{printf "%s %.1f KB\n", $2, $1/1024}' > sizes.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-sizes
+          path: sizes.txt
