@@ -1,0 +1,42 @@
+name: "🔍 Wayback snapshots"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL or domain (example.com)"
+        default: "example.com"
+
+jobs:
+  wayback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Wayback CDX API
+        run: |
+          U="${{ inputs.url }}"
+          J=$(curl -s --max-time 40 "https://web.archive.org/cdx/search/cdx?url=${U}&output=json&filter=statuscode:200&collapse=digest&fl=timestamp,original,statuscode,digest&limit=10000")
+          {
+            echo "## 🔍 Wayback snapshots: $U"
+            echo ""
+            if [ -z "$J" ] || [ "$(jq 'length' <<< "$J")" -le 1 ]; then
+              echo "No archived snapshots found for \`$U\`."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            COUNT=$(($(jq 'length' <<< "$J") - 1))
+            FIRST=$(jq -r '.[1][0]' <<< "$J")
+            LAST=$(jq -r '.[-1][0]' <<< "$J")
+            fmt() { date -u -d "${1:0:4}-${1:4:2}-${1:6:2} ${1:8:2}:${1:10:2}:${1:12:2}" '+%Y-%m-%d' 2>/dev/null || echo "$1"; }
+            echo "**$COUNT** snapshots archived."
+            echo ""
+            echo "- First capture: $(fmt "$FIRST") — https://web.archive.org/web/${FIRST}/$(jq -r '.[1][1]' <<< "$J")"
+            echo "- Latest capture: $(fmt "$LAST") — https://web.archive.org/web/${LAST}/$(jq -r '.[-1][1]' <<< "$J")"
+            echo ""
+            echo "**Sample captures across the years:**"
+            echo '```'
+            jq -r '.[1:][0]' <<< "$J" | awk '{print substr($0,1,4)}' | uniq -c | head -20
+            echo '```'
+            echo ""
+            echo "_Source: web.archive.org CDX · $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

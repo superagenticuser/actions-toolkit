@@ -1,0 +1,43 @@
+name: "🔍 IP intel"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "IP address or domain"
+        default: "8.8.8.8"
+
+jobs:
+  ipintel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Geolocation, ASN & network info
+        run: |
+          T="${{ inputs.target }}"
+          if ! [[ "$T" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            IP=$(dig +short A "$T" | head -1)
+            [ -z "$IP" ] && IP="$T"
+          else
+            IP="$T"
+          fi
+          J=$(curl -s --max-time 20 "http://ip-api.com/json/${IP}?fields=status,country,regionName,city,zip,lat,lon,timezone,isp,org,as,reverse,proxy,hosting")
+          {
+            echo "## 🔍 IP intel: $T"
+            echo ""
+            if [ "$(jq -r .status <<< "$J")" != "success" ]; then
+              echo "Lookup failed for \`$IP\`."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            echo "- **IP:** $IP"
+            echo "- **Location:** $(jq -r .city <<< "$J"), $(jq -r .regionName <<< "$J"), $(jq -r .country <<< "$J") $(jq -r .zip <<< "$J")"
+            echo "- **Coords:** $(jq -r .lat <<< "$J"), $(jq -r .lon <<< "$J") · $(jq -r .timezone <<< "$J")"
+            echo "- **ISP:** $(jq -r .isp <<< "$J")"
+            echo "- **Org:** $(jq -r .org <<< "$J")"
+            echo "- **ASN:** $(jq -r .as <<< "$J")"
+            echo "- **Reverse DNS:** $(jq -r .reverse <<< "$J")"
+            echo "- **Hosting/DC:** $(jq -r .hosting <<< "$J") · **Proxy/VPN:** $(jq -r .proxy <<< "$J")"
+            echo ""
+            echo "_Source: ip-api.com (free tier) · $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

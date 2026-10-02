@@ -1,0 +1,45 @@
+name: "🔍 Certificate timeline"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to check (example.com)"
+        default: "example.com"
+
+jobs:
+  certs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Certificate transparency timeline
+        run: |
+          D="${{ inputs.domain }}"
+          JSON=""
+          for i in 1 2 3; do
+            JSON=$(curl -s --max-time 40 "https://crt.sh/?q=%25.${D}&output=json") && break
+            sleep $((i * 10))
+          done
+          {
+            echo "## 🔍 Certificate timeline: $D"
+            echo ""
+            if [ -z "$JSON" ] || ! jq -e . > /dev/null 2>&1 <<< "$JSON"; then
+              echo "⚠️ crt.sh is unreachable right now — re-run this workflow later."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            TOTAL=$(jq 'length' <<< "$JSON")
+            FIRST=$(jq -r 'min_by(.not_before) | .not_before' <<< "$JSON")
+            LAST=$(jq -r 'max_by(.not_before) | .not_after' <<< "$JSON")
+            echo "**$TOTAL** certificates found in transparency logs."
+            echo ""
+            echo "- Earliest issuance: $FIRST"
+            echo "- Latest expiry: $LAST"
+            echo ""
+            echo "**Top issuers:**"
+            echo '```'
+            jq -r '.[].issuer_name' <<< "$JSON" | sort | uniq -c | sort -rn | head -8
+            echo '```'
+            echo ""
+            echo "_Source: crt.sh · $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

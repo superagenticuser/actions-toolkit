@@ -1,0 +1,32 @@
+name: "🔍 WHOIS lookup"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to look up (no http://)"
+        default: "example.com"
+
+jobs:
+  whois:
+    runs-on: ubuntu-latest
+    steps:
+      - name: WHOIS / RDAP lookup
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq whois > /dev/null 2>&1
+          D="${{ inputs.domain }}"
+          OUT=$(whois "$D" 2>/dev/null | grep -viE "^(%|#|$|.*terms of use|.*whois server)" | head -60)
+          {
+            echo "## 🔍 WHOIS: $D"
+            echo ""
+            echo '```'
+            echo "$OUT"
+            echo '```'
+            echo ""
+            REG=$(whois "$D" 2>/dev/null | grep -iE "registrar:" | head -1)
+            CREATED=$(whois "$D" 2>/dev/null | grep -iE "creation date:" | head -1)
+            EXPIRY=$(whois "$D" 2>/dev/null | grep -iE "expir|registry expiry" | head -1)
+            echo "_${REG:-Registrar unknown} · ${CREATED:-Created unknown} · ${EXPIRY:-Expiry unknown}_"
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

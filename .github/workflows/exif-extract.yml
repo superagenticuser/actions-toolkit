@@ -1,0 +1,41 @@
+name: "🔍 EXIF extractor"
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_url:
+        description: "Direct URL to the image"
+        default: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/320px-Example.jpg"
+
+jobs:
+  exif:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download & extract metadata
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libimage-exiftool-perl > /dev/null 2>&1
+          URL="${{ inputs.image_url }}"
+          curl -sL --max-time 30 -o /tmp/img "$URL"
+          {
+            echo "## 🔍 EXIF: $URL"
+            echo ""
+            if ! file /tmp/img | grep -qiE 'image|jpeg|png|tiff|webp|heic'; then
+              echo "⚠️ That URL didn't return an image."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            echo '```'
+            exiftool -Make -Model -LensModel -Software -CreateDate -ModifyDate \
+              -GPSLatitude -GPSLongitude -GPSPosition -ImageWidth -ImageHeight \
+              -FileType -MIMEType /tmp/img 2>/dev/null
+            echo '```'
+            echo ""
+            if exiftool -GPSLatitude /tmp/img 2>/dev/null | grep -q ':'; then
+              echo "⚠️ **This image contains GPS coordinates** — location is embedded."
+            else
+              echo "No GPS coordinates embedded."
+            fi
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

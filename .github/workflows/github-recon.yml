@@ -1,0 +1,47 @@
+name: "🔍 GitHub user recon"
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "GitHub username"
+        default: "torvalds"
+
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Profile, repos & commit-email check
+        run: |
+          U="${{ inputs.username }}"
+          P=$(curl -s --max-time 20 "https://api.github.com/users/${U}")
+          {
+            echo "## 🔍 GitHub recon: $U"
+            echo ""
+            if [ "$(jq -r .message <<< "$P")" = "Not Found" ]; then
+              echo "User \`$U\` not found."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            echo "- **Name:** $(jq -r .name <<< "$P")"
+            echo "- **Bio:** $(jq -r .bio <<< "$P")"
+            echo "- **Company:** $(jq -r .company <<< "$P") · **Location:** $(jq -r .location <<< "$P")"
+            echo "- **Blog:** $(jq -r .blog <<< "$P") · **Email(public):** $(jq -r .email <<< "$P")"
+            echo "- **Repos:** $(jq -r .public_repos <<< "$P") · **Followers:** $(jq -r .followers <<< "$P") · **Following:** $(jq -r .following <<< "$P")"
+            echo "- **Created:** $(jq -r .created_at <<< "$P" | cut -dT -f1)"
+            echo ""
+            echo "**Top repos by stars:**"
+            echo '```'
+            curl -s --max-time 20 "https://api.github.com/users/${U}/repos?per_page=100" \
+              | jq -r 'sort_by(.stargazers_count) | reverse | .[0:8][] | "\(.stargazers_count)★  \(.name) — \(.description // "" | .[0:60])"' \
+              | head -8
+            echo '```'
+            echo ""
+            echo "**Possible commit-email leak** (from recent public push events):"
+            EMAILS=$(curl -s --max-time 20 "https://api.github.com/users/${U}/events/public?per_page=30" \
+              | jq -r '.. | .email? // empty' | grep -E '@' | sort -u | head -5)
+            if [ -n "$EMAILS" ]; then echo '```'; echo "$EMAILS"; echo '```'; else echo "_none found in recent events_"; fi
+            echo ""
+            echo "_Source: api.github.com (unauthenticated) · $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

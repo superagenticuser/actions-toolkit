@@ -1,0 +1,35 @@
+name: "🔍 Security headers grader"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Full URL (https://example.com)"
+        default: "https://example.com"
+
+jobs:
+  headers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch & grade security headers
+        run: |
+          U="${{ inputs.url }}"
+          H=$(curl -sk --max-time 25 -D - -o /dev/null "$U" | tr -d '\r')
+          score=0
+          {
+            echo "## 🔍 Security headers: $U"
+            echo ""
+            for h in strict-transport-security content-security-policy x-frame-options x-content-type-options referrer-policy permissions-policy; do
+              if grep -qi "^$h:" <<< "$H"; then
+                score=$((score+1))
+                echo "- ✅ **$h:** $(grep -i "^$h:" <<< "$H" | head -1 | cut -d: -f2- | xargs | cut -c1-90)"
+              else
+                echo "- ❌ **$h:** missing"
+              fi
+            done
+            echo ""
+            if [ "$score" -ge 5 ]; then G="A — solid"; elif [ "$score" -ge 4 ]; then G="B — decent"; elif [ "$score" -ge 2 ]; then G="C — gaps"; else G="F — exposed"; fi
+            echo "**Grade: $G** ($score/6 headers present)"
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

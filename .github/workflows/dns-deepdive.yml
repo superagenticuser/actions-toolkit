@@ -1,0 +1,38 @@
+name: "🔍 DNS deep-dive"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to inspect"
+        default: "example.com"
+
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query DNS records
+        run: |
+          D="${{ inputs.domain }}"
+          rec() { dig +short "$2" "$D" 2>/dev/null | head -10; }
+          {
+            echo "## 🔍 DNS: $D"
+            echo ""
+            echo "**A:** $(rec A A | tr '\n' ' ')"
+            echo ""
+            echo "**AAAA:** $(rec AAAA AAAA | tr '\n' ' ')"
+            echo ""
+            echo "**MX:**"
+            echo '```'; rec MX MX; echo '```'
+            echo "**NS:** $(rec NS NS | tr '\n' ' ')"
+            echo ""
+            echo "**TXT:**"
+            echo '```'; rec TXT TXT; echo '```'
+            echo "**SPF:** $(dig +short TXT "$D" | grep -i spf || echo 'none found')"
+            echo ""
+            echo "**DMARC:** $(dig +short TXT "_dmarc.$D" | head -1 || echo 'none found')"
+            echo ""
+            echo "**SOA:** $(dig +short SOA "$D" | head -1)"
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,41 @@
+name: "🔍 Subdomain enumeration"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Root domain (example.com)"
+        default: "example.com"
+
+jobs:
+  subdomains:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enumerate via certificate transparency (crt.sh)
+        run: |
+          D="${{ inputs.domain }}"
+          JSON=""
+          for i in 1 2 3; do
+            JSON=$(curl -s --max-time 40 "https://crt.sh/?q=%25.${D}&output=json") && break
+            sleep $((i * 10))
+          done
+          {
+            echo "## 🔍 Subdomains of $D"
+            echo ""
+            if [ -z "$JSON" ] || ! jq -e . > /dev/null 2>&1 <<< "$JSON"; then
+              echo "⚠️ crt.sh is unreachable right now — re-run this workflow later."
+              echo ""
+              echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+              exit 0
+            fi
+            SUBS=$(jq -r '.[].name_value' <<< "$JSON" | tr ' ' '\n' | grep -v '^\*' | sort -u)
+            COUNT=$(wc -l <<< "$SUBS" | tr -d ' ')
+            echo "Found **$COUNT** unique subdomains (deduplicated, wildcards removed):"
+            echo ""
+            echo '```'
+            echo "$SUBS" | head -100
+            [ "$COUNT" -gt 100 ] && echo "... and $((COUNT - 100)) more"
+            echo '```'
+            echo ""
+            echo "_Source: crt.sh certificate transparency · $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

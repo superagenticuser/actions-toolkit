@@ -1,0 +1,69 @@
+name: "🔍 Typosquat detector"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to protect (example.com)"
+        default: "example.com"
+
+jobs:
+  typosquat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate lookalikes & check DNS
+        run: |
+          D="${{ inputs.domain }}"
+          NAME="${D%%.*}"; TLD="${D#*.}"
+          {
+            echo "## 🔍 Typosquat check: $D"
+            echo ""
+            echo "Generating common typo variants and checking which resolve…"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          VARIANTS=""
+          # omission & duplication & transposition
+          for ((i=0;i<${#NAME};i++)); do
+            VARIANTS="$VARIANTS
+          ${NAME:0:i}${NAME:i+1}"                       # omission
+            VARIANTS="$VARIANTS
+          ${NAME:0:i}${NAME:i:1}${NAME:i}"              # duplication
+            if [ $i -lt $((${#NAME}-1)) ]; then
+              VARIANTS="$VARIANTS
+          ${NAME:0:i}${NAME:i+1:1}${NAME:i:1}${NAME:i+2}" # transposition
+            fi
+          done
+          # keyboard neighbours (qwerty rows)
+          declare -A KB=( [a]=qwsz [b]=vghn [c]=xdfv [d]=serfcx [e]=wsdr [f]=drtgcv [g]=ftyhbv [h]=gyujnb [i]=ujko [j]=huikmn [k]=jiolm [l]=kop [m]=njk [n]=bhjm [o]=iklp [p]=ol [q]=wa [r]=edft [s]=awedxz [t]=rfgy [u]=yhji [v]=cfgb [w]=qeas [x]=zsdc [y]=tghu [z]=xsa )
+          for ((i=0;i<${#NAME};i++)); do
+            c="${NAME:i:1}"; nb="${KB[$c]}"
+            for ((k=0;k<${#nb};k++)); do
+              VARIANTS="$VARIANTS
+          ${NAME:0:i}${nb:k:1}${NAME:i+1}"
+            done
+          done
+          # hyphenation + common TLD swaps
+          VARIANTS="$VARIANTS
+          ${NAME}-${NAME}"
+          for t in com net org io co dev app; do [ "$t" != "$TLD" ] && VARIANTS="$VARIANTS
+          ${NAME}.${t}"; done
+          VARIANTS=$(echo "$VARIANTS" | grep -v '^$' | sort -u | head -120)
+          HIT=""
+          while IFS= read -r v; do
+            host="${v}.${TLD}"; [[ "$v" == *.* ]] && host="$v"
+            if dig +short A "$host" 2>/dev/null | grep -qE '^[0-9]'; then
+              HIT="$HIT
+          - ⚠️ **$host** → $(dig +short A "$host" | head -1)"
+            fi
+          done <<< "$VARIANTS"
+          {
+            TOTAL=$(wc -l <<< "$VARIANTS" | tr -d ' ')
+            if [ -z "$HIT" ]; then
+              echo "Checked **$TOTAL** variants — none resolve. Clean. 🎉"
+            else
+              echo "Checked **$TOTAL** variants. **Registered lookalikes found:**"
+              echo "$HIT"
+            fi
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,39 @@
+name: "🔍 Gravatar check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email address to check"
+        default: "someone@example.com"
+
+jobs:
+  gravatar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for a Gravatar profile
+        run: |
+          E=$(echo "${{ inputs.email }}" | tr '[:upper:]' '[:lower:]' | xargs)
+          HASH=$(echo -n "$E" | md5sum | cut -d' ' -f1)
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://www.gravatar.com/avatar/${HASH}?d=404&s=200")
+          PROF=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://www.gravatar.com/${HASH}.json")
+          {
+            echo "## 🔍 Gravatar: $E"
+            echo ""
+            echo "- MD5: \`$HASH\`"
+            if [ "$CODE" = "200" ]; then
+              echo "- 🖼️ **Avatar exists** — https://www.gravatar.com/avatar/${HASH}?s=400"
+            else
+              echo "- No custom avatar (HTTP $CODE)"
+            fi
+            if [ "$PROF" = "200" ]; then
+              echo "- 👤 **Public profile exists** — https://www.gravatar.com/${HASH}"
+              echo '```'
+              curl -s --max-time 15 "https://www.gravatar.com/${HASH}.json" | jq -r '.entry[0] | "name: \(.displayName // .preferredUsername)\nabout: \(.aboutMe // "-")\nurls: \([.urls // [] | .[].value] | join(", "))"'
+              echo '```'
+            else
+              echo "- No public Gravatar profile"
+            fi
+            echo ""
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } >> "$GITHUB_STEP_SUMMARY"
