@@ -19,10 +19,23 @@ jobs:
     steps:
       - name: Send push notification
         run: |
-          curl -s --max-time 20 \
-            -H "Title: ${{ inputs.title }}" \
-            -d "${{ inputs.message }}" \
-            "https://ntfy.sh/${{ inputs.topic }}"
-          echo "## 📣 Notification sent to ntfy.sh/${{ inputs.topic }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "_Subscribe to that topic in the ntfy app (Android/iOS) to get it on your phone._" >> "$GITHUB_STEP_SUMMARY"
+          SENT=0
+          for i in 1 2 3; do
+            CODE=$(curl -s --max-time 25 -o /dev/null -w "%{http_code}" \
+              -H "Title: ${{ inputs.title }}" \
+              -d "${{ inputs.message }}" \
+              "https://ntfy.sh/${{ inputs.topic }}" || echo "000")
+            echo "attempt $i → HTTP $CODE"
+            if [[ "$CODE" =~ ^2 ]]; then SENT=1; break; fi
+            sleep $((i * 10))
+          done
+          if [ "$SENT" = "1" ]; then
+            echo "## 📣 Notification sent to ntfy.sh/${{ inputs.topic }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "_Subscribe to that topic in the ntfy app (Android/iOS) to get it on your phone._" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## ⚠️ ntfy.sh unreachable after 3 attempts" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The notification was **not** delivered — ntfy.sh did not respond." >> "$GITHUB_STEP_SUMMARY"
+            echo "Your topic (\`${{ inputs.topic }}\`) is still valid; re-run this workflow when the service is back." >> "$GITHUB_STEP_SUMMARY"
+          fi
