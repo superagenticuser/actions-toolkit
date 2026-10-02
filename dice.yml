@@ -1,0 +1,42 @@
+name: "🎲 Dice / coin / picker"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "What to randomize"
+        type: choice
+        options: [coin, dice, choice]
+        default: dice
+      sides:
+        description: "Dice sides (dice mode)"
+        default: "6"
+      choices:
+        description: "Comma-separated options (choice mode)"
+        default: "pizza, tacos, sushi"
+
+jobs:
+  roll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Roll
+        run: |
+          MODE="${{ inputs.mode }}"
+          case "$MODE" in
+            coin)
+              [ $((RANDOM % 2)) -eq 0 ] && R="Heads" || R="Tails"
+              ;;
+            dice)
+              SIDES="${{ inputs.sides }}"
+              R="$(shuf -i "1-${SIDES}" -n 1) (d${SIDES})"
+              ;;
+            choice)
+              R="$(tr ',' '\n' <<< "${{ inputs.choices }}" | sed 's/^ *//;s/ *$//' | grep -v '^$' | shuf -n 1)"
+              ;;
+          esac
+          {
+            echo "## 🎲 Result"
+            echo ""
+            echo "# $R"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "result=$R" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,37 @@
+name: "🔍 Domain checkup"
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Domain to inspect (no https://)"
+        required: true
+        default: "example.com"
+
+jobs:
+  checkup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect domain
+        run: |
+          D="${{ inputs.domain }}"
+          {
+            echo "## 🔍 Domain checkup: \`$D\`"
+            echo ""
+            echo "### DNS"
+            echo '```'
+            dig +short "$D" A | sed 's/^/A: /'
+            dig +short "$D" AAAA | sed 's/^/AAAA: /'
+            dig +short "$D" MX | sed 's/^/MX: /'
+            echo '```'
+            echo "### TLS certificate"
+            echo '```'
+            echo | openssl s_client -servername "$D" -connect "$D:443" 2>/dev/null \
+              | openssl x509 -noout -subject -issuer -dates 2>/dev/null \
+              || echo "No TLS certificate / port 443 unreachable"
+            echo '```'
+            echo "### HTTP headers"
+            echo '```'
+            curl -sI --max-time 15 "https://$D" | head -20
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

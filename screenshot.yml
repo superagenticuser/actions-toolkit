@@ -1,0 +1,60 @@
+name: "📸 Website screenshots"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to screenshot"
+        required: true
+        default: "https://example.com"
+      fullPage:
+        description: "Capture the full page (not just viewport)"
+        type: boolean
+        default: false
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: browser-actions/setup-chrome@latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install puppeteer-core
+
+      - name: Capture screenshots
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          TARGET_URL: ${{ inputs.url }}
+          FULL_PAGE: ${{ inputs.fullPage }}
+        run: |
+          node <<'EOF'
+          const puppeteer = require('puppeteer-core');
+          (async () => {
+            const browser = await puppeteer.launch({
+              executablePath: process.env.CHROME_PATH,
+              args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            });
+            const targets = [
+              { name: 'desktop', width: 1440, height: 900, mobile: false },
+              { name: 'mobile', width: 390, height: 844, mobile: true },
+            ];
+            for (const t of targets) {
+              const page = await browser.newPage();
+              await page.setViewport({ width: t.width, height: t.height, isMobile: t.mobile, deviceScaleFactor: 2 });
+              await page.goto(process.env.TARGET_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+              await new Promise(r => setTimeout(r, 1500));
+              await page.screenshot({ path: `shot-${t.name}.png`, fullPage: process.env.FULL_PAGE === 'true' });
+              await page.close();
+              console.log('captured', t.name);
+            }
+            await browser.close();
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shot-*.png

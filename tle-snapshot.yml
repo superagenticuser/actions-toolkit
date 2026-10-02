@@ -1,0 +1,35 @@
+name: "🛰 TLE snapshot"
+
+on:
+  workflow_dispatch:
+
+# Tip: copy this file into another repo (e.g. your globe) and add a commit step
+# with GITHUB_TOKEN to keep a cached TLE file fresh automatically.
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch CelesTrak TLE sets
+        run: |
+          mkdir -p tle-cache
+          for GROUP in stations visual; do
+            curl -s --max-time 30 "https://celestrak.org/NORAD/elements/gp.php?GROUP=${GROUP}&FORMAT=tle" \
+              -o "tle-cache/${GROUP}.tle"
+          done
+          {
+            echo "## 🛰 TLE snapshot — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            for f in tle-cache/*.tle; do
+              N=$(grep -c '^1 ' "$f" || true)
+              echo "- \`$(basename "$f")\`: ${N} objects"
+            done
+            echo ""
+            echo "_Use as an offline fallback when the live CelesTrak feed is unreachable._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          ls -lh tle-cache/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tle-snapshot
+          path: tle-cache/

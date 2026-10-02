@@ -1,0 +1,51 @@
+name: "🌤️ Weather snapshot"
+
+on:
+  workflow_dispatch:
+    inputs:
+      city:
+        description: "City name"
+        required: true
+        default: "Port Louis"
+
+jobs:
+  weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch weather (Open-Meteo, no key needed)
+        run: |
+          ENC=$(jq -rn --arg c "${{ inputs.city }}" '$c|@uri')
+          GEO=$(curl -s --max-time 20 "https://geocoding-api.open-meteo.com/v1/search?name=${ENC}&count=1&format=json")
+          LAT=$(jq -r '.results[0].latitude' <<< "$GEO")
+          LON=$(jq -r '.results[0].longitude' <<< "$GEO")
+          NAME=$(jq -r '.results[0].name' <<< "$GEO")
+          COUNTRY=$(jq -r '.results[0].country // ""' <<< "$GEO")
+          FC=$(curl -s --max-time 20 "https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3")
+          wcode() {
+            case "$1" in
+              0) echo "Clear sky";; 1|2|3) echo "Partly cloudy";; 45|48) echo "Foggy";;
+              51|53|55) echo "Drizzle";; 61|63|65) echo "Rain";; 71|73|75|77) echo "Snow";;
+              80|81|82) echo "Showers";; 95) echo "Thunderstorm";; 96|99) echo "Storm + hail";;
+              *) echo "—";;
+            esac
+          }
+          CUR_T=$(jq -r '.current.temperature_2m' <<< "$FC")
+          CUR_F=$(jq -r '.current.apparent_temperature' <<< "$FC")
+          CUR_H=$(jq -r '.current.relative_humidity_2m' <<< "$FC")
+          CUR_W=$(jq -r '.current.wind_speed_10m' <<< "$FC")
+          CUR_C=$(wcode "$(jq -r '.current.weather_code' <<< "$FC")")
+          {
+            echo "## 🌤️ Weather: $NAME${COUNTRY:+, $COUNTRY}"
+            echo ""
+            echo "**Now:** ${CUR_T}°C (feels ${CUR_F}°C), ${CUR_C}, humidity ${CUR_H}%, wind ${CUR_W} km/h"
+            echo ""
+            echo "| Day | High | Low | Conditions |"
+            echo "|-----|------|-----|------------|"
+            for i in 0 1 2; do
+              DAY=$(jq -r ".daily.time[$i]" <<< "$FC")
+              HI=$(jq -r ".daily.temperature_2m_max[$i]" <<< "$FC")
+              LO=$(jq -r ".daily.temperature_2m_min[$i]" <<< "$FC")
+              CD=$(wcode "$(jq -r ".daily.weather_code[$i]" <<< "$FC")")
+              echo "| $DAY | ${HI}°C | ${LO}°C | $CD |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

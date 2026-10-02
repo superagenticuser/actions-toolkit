@@ -1,0 +1,38 @@
+name: "🔐 Passphrase generator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      words:
+        description: "Number of words"
+        default: "5"
+      separator:
+        description: "Word separator"
+        default: "-"
+
+jobs:
+  passphrase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate
+        run: |
+          N="${{ inputs.words }}"
+          SEP="${{ inputs.separator }}"
+          # EFF large wordlist (7776 words); falls back to hex if unreachable
+          if curl -sL --max-time 25 https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt -o eff.txt && [ -s eff.txt ]; then
+            PHRASE=$(cut -f2 eff.txt | shuf -n "$N" | paste -sd "$SEP" -)
+            BITS=$(python3 -c "import math; print(round($N * math.log2(7776)))")
+            NOTE="${BITS} bits of entropy (EFF list)"
+          else
+            PHRASE=$(openssl rand -hex 16)
+            NOTE="wordlist unreachable — hex fallback"
+          fi
+          {
+            echo "## 🔐 Passphrase"
+            echo ""
+            echo '```'
+            echo "$PHRASE"
+            echo '```'
+            echo ""
+            echo "_${NOTE}. Treat run logs like a secret — delete the run after copying._"
+          } >> "$GITHUB_STEP_SUMMARY"

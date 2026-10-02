@@ -1,0 +1,46 @@
+name: "📄 Webpage to PDF"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to convert to PDF"
+        required: true
+        default: "https://example.com"
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: browser-actions/setup-chrome@latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install puppeteer-core
+
+      - name: Render PDF
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          TARGET_URL: ${{ inputs.url }}
+        run: |
+          node <<'EOF'
+          const puppeteer = require('puppeteer-core');
+          (async () => {
+            const browser = await puppeteer.launch({
+              executablePath: process.env.CHROME_PATH,
+              args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            });
+            const page = await browser.newPage();
+            await page.goto(process.env.TARGET_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+            await page.pdf({ path: 'page.pdf', format: 'A4', printBackground: true });
+            await browser.close();
+            console.log('page.pdf written');
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webpage-pdf
+          path: page.pdf

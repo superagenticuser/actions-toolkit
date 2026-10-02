@@ -1,0 +1,40 @@
+name: "🔳 QR code generator"
+
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: "Text or URL to encode"
+        required: true
+        default: "https://example.com"
+
+jobs:
+  qr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install qrcode
+
+      - name: Generate QR code
+        env:
+          QR_TEXT: ${{ inputs.text }}
+        run: |
+          node <<'EOF'
+          const QRCode = require('qrcode');
+          QRCode.toFile('qr.png', process.env.QR_TEXT, { width: 1024, margin: 2 })
+            .then(() => console.log('qr.png written'))
+            .catch(e => { console.error(e); process.exit(1); });
+          EOF
+          {
+            echo "## 🔳 QR code"
+            echo ""
+            echo "Encoded: \`${{ inputs.text }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-code
+          path: qr.png

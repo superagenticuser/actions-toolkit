@@ -1,0 +1,19 @@
+name: "🔗 Link check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to crawl for broken links"
+        required: true
+        default: "https://example.com"
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --verbose --no-progress --max-concurrency 8 '${{ inputs.url }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

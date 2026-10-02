@@ -1,0 +1,38 @@
+name: "📰 Tech news briefing"
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Number of stories"
+        default: "10"
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build briefing from Hacker News
+        run: |
+          LIMIT="${{ inputs.limit }}"
+          IDS=$(curl -s --max-time 20 "https://hacker-news.firebaseio.com/v0/topstories.json" | jq -r ".[0:${LIMIT}] | join(\" \")")
+          {
+            echo "## 📰 Tech briefing — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+          } > briefing.md
+          n=0
+          for id in $IDS; do
+            n=$((n+1))
+            ITEM=$(curl -s --max-time 15 "https://hacker-news.firebaseio.com/v0/item/${id}.json")
+            TITLE=$(jq -r '.title' <<< "$ITEM")
+            URL=$(jq -r '.url // empty' <<< "$ITEM")
+            SCORE=$(jq -r '.score' <<< "$ITEM")
+            CMT=$(jq -r '.descendants // 0' <<< "$ITEM")
+            [ -z "$URL" ] && URL="https://news.ycombinator.com/item?id=${id}"
+            echo "${n}. [${TITLE}](${URL}) — ${SCORE} pts, [${CMT} comments](https://news.ycombinator.com/item?id=${id})" >> briefing.md
+          done
+          cat briefing.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: news-briefing
+          path: briefing.md

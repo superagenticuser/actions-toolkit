@@ -1,0 +1,99 @@
+name: "🛰 ISS flyover predictor"
+
+on:
+  workflow_dispatch:
+    inputs:
+      latitude:
+        description: "Observer latitude (e.g. -20.16)"
+        required: true
+        default: "-20.16"
+      longitude:
+        description: "Observer longitude (e.g. 57.49)"
+        required: true
+        default: "57.49"
+      days:
+        description: "Days to look ahead (1-7)"
+        default: "2"
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install satellite.js
+
+      - name: Fetch ISS TLE
+        run: |
+          curl -s --max-time 30 "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle" \
+            | grep -A2 "^ISS (ZARYA)" > iss.tle
+          wc -l iss.tle
+
+      - name: Compute passes
+        env:
+          LAT: ${{ inputs.latitude }}
+          LON: ${{ inputs.longitude }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const satellite = require('satellite.js');
+          const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+
+          const lines = fs.readFileSync('iss.tle', 'utf8').trim().split('\n');
+          const satrec = satellite.twoline2satrec(lines[1], lines[2]);
+
+          const obsGd = { latitude: parseFloat(process.env.LAT) * D2R, longitude: parseFloat(process.env.LON) * D2R, height: 0 };
+          const horizon = 10 * D2R; // only count passes peaking above 10°
+          const days = Math.min(Math.max(parseInt(process.env.DAYS || '2', 10), 1), 7);
+          const step = 20; // seconds
+          const now = Date.now();
+          const end = now + days * 86400000;
+
+          const passes = [];
+          let inPass = false, pass = null;
+          for (let t = now; t < end; t += step * 1000) {
+            const date = new Date(t);
+            const pv = satellite.propagate(satrec, date);
+            if (!pv || !pv.position) continue;
+            const gmst = satellite.gstime(date);
+            const posEcf = satellite.eciToEcf(pv.position, gmst);
+            const look = satellite.ecfToLookAngles(obsGd, posEcf);
+            const el = look.elevation;
+            if (!inPass && el > 0) {
+              inPass = true;
+              pass = { start: date, maxEl: el, maxAt: date, az: look.azimuth };
+            } else if (inPass) {
+              if (el > pass.maxEl) { pass.maxEl = el; pass.maxAt = date; pass.az = look.azimuth; }
+              if (el <= 0) {
+                inPass = false; pass.end = date;
+                if (pass.maxEl >= horizon) passes.push(pass);
+                pass = null;
+              }
+            }
+          }
+
+          const compass = a => ['N','NE','E','SE','S','SW','W','NW'][Math.round(a * R2D / 45) % 8];
+          let md = `## 🛰 ISS passes — lat ${process.env.LAT}, lon ${process.env.LON} (next ${days}d)\n\n`;
+          md += '_Radio-visible passes (peaking above 10°). Optical visibility needs darkness — check local sunset._\n\n';
+          if (!passes.length) {
+            md += 'No high passes in this window.\n';
+          } else {
+            md += '| # | Peak (UTC) | Max elev | Duration | Direction |\n|---|------------|----------|----------|-----------|\n';
+            passes.forEach((p, i) => {
+              const peak = p.maxAt.toISOString().slice(0, 16).replace('T', ' ');
+              const dur = Math.round((p.end - p.start) / 60000);
+              md += `| ${i + 1} | ${peak} | ${(p.maxEl * R2D).toFixed(0)}° | ${dur} min | ${compass(p.az)} |\n`;
+            });
+          }
+          fs.writeFileSync('passes.md', md);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+          console.log(`found ${passes.length} passes`);
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iss-passes
+          path: passes.md
