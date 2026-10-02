@@ -6,6 +6,7 @@ on:
       topic:
         description: "ntfy.sh topic (pick a random hard-to-guess name)"
         required: true
+        default: "superagenticuser_notifs"
       message:
         description: "Message to send"
         default: "Your workflow finished!"
