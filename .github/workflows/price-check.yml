@@ -7,7 +7,7 @@ on:
         description: "Coin id (bitcoin, ethereum, solana…)"
         default: "bitcoin"
       vs:
-        description: "Currency (usd, eur, mur…)"
+        description: "Currency (usd, eur, mur… — unsupported ones auto-convert via USD)"
         default: "usd"
 
 jobs:
@@ -18,23 +18,45 @@ jobs:
         run: |
           COIN="${{ inputs.coin }}"
           VS="${{ inputs.vs }}"
+          VSU=$(echo "$VS" | tr '[:lower:]' '[:upper:]')
+          # Try the requested currency directly on CoinGecko
           J=$(curl -s --max-time 20 "https://api.coingecko.com/api/v3/simple/price?ids=${COIN}&vs_currencies=${VS}&include_24hr_change=true&include_market_cap=true")
           PRICE=$(jq -r ".[\"$COIN\"][\"$VS\"]" <<< "$J")
-          CHG=$(jq -r ".[\"$COIN\"][\"${VS}_24h_change\"]" <<< "$J")
-          MCAP=$(jq -r ".[\"$COIN\"][\"${VS}_market_cap\"]" <<< "$J")
+          NOTE=""
           if [ "$PRICE" = "null" ] || [ -z "$PRICE" ]; then
-            echo "## 💰 Price check" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Unknown coin id \`$COIN\`. Try \`bitcoin\`, \`ethereum\`, \`solana\`…" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            # Fall back: USD price × FX rate (for mur and friends)
+            JUSD=$(curl -s --max-time 20 "https://api.coingecko.com/api/v3/simple/price?ids=${COIN}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true")
+            PUSD=$(jq -r ".[\"$COIN\"][\"usd\"]" <<< "$JUSD")
+            if [ "$PUSD" = "null" ] || [ -z "$PUSD" ]; then
+              echo "## 💰 Price check" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "Unknown coin id \`$COIN\`. Try \`bitcoin\`, \`ethereum\`, \`solana\`…" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            FX=$(curl -s --max-time 15 "https://open.er-api.com/v6/latest/USD" | jq -r ".rates[\"$VSU\"]")
+            if [ "$FX" = "null" ] || [ -z "$FX" ]; then
+              echo "## 💰 Price check" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "Currency \`$VS\` isn't supported by CoinGecko or the FX feed." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            PRICE=$(awk "BEGIN{printf \"%.2f\", $PUSD * $FX}")
+            CHG=$(jq -r ".[\"$COIN\"][\"usd_24h_change\"]" <<< "$JUSD")
+            MCAP_USD=$(jq -r ".[\"$COIN\"][\"usd_market_cap\"]" <<< "$JUSD")
+            MCAP=$(awk "BEGIN{printf \"%.0f\", $MCAP_USD * $FX}")
+            NOTE="_Converted from USD @ 1 USD = ${FX} ${VSU}_"
+          else
+            CHG=$(jq -r ".[\"$COIN\"][\"${VS}_24h_change\"]" <<< "$J")
+            MCAP=$(jq -r ".[\"$COIN\"][\"${VS}_market_cap\"]" <<< "$J")
           fi
           ARROW="📈"; awk "BEGIN{exit !($CHG < 0)}" && ARROW="📉"
           {
-            echo "## 💰 ${COIN} / ${VS^^}"
+            echo "## 💰 ${COIN} / ${VSU}"
             echo ""
-            echo "# ${ARROW} ${PRICE} ${VS^^}"
+            echo "# ${ARROW} ${PRICE} ${VSU}"
             echo ""
-            echo "24h change: ${CHG}% · Market cap: ${MCAP} ${VS^^}"
+            echo "24h change: ${CHG}% · Market cap: ${MCAP} ${VSU}"
             echo ""
+            [ -n "$NOTE" ] && { echo "$NOTE"; echo ""; }
             echo "_$(date -u '+%Y-%m-%d %H:%M UTC') · CoinGecko_"
           } >> "$GITHUB_STEP_SUMMARY"
