@@ -32,4 +32,5 @@ jobs:
               fi
             done
             [ "$n" -eq 0 ] && echo "_No other branches._"
+            true
           } >> "$GITHUB_STEP_SUMMARY"

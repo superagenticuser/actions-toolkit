@@ -24,4 +24,5 @@ jobs:
             jq -r '.results[]? | "| \(.name) | \(.country // "—") | \(.latitude) | \(.longitude) | [open](https://www.openstreetmap.org/?mlat=\(.latitude)&mlon=\(.longitude)#map=12/\(.latitude)/\(.longitude)) |"' <<< "$J"
             N=$(jq '.results | length' <<< "$J")
             [ "$N" -eq 0 ] && echo "_No matches._"
+            true
           } >> "$GITHUB_STEP_SUMMARY"

@@ -20,7 +20,7 @@ jobs:
           {
             echo "## 🔎 Tech stack — \`$U\`"
             echo ""
-            detect() { grep -qiE "$1" <<< "$2" && echo "- $3"; }
+            detect() { grep -qiE "$1" <<< "$2" && echo "- $3"; return 0; }
             detect "wp-content|wp-includes" "$BODY" "WordPress"
             detect "_next/static" "$BODY" "Next.js"
             detect "cdn.shopify.com|myshopify" "$BODY" "Shopify"

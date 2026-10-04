@@ -8,6 +8,9 @@ on:
         required: true
         default: "https://example.com"
 
+permissions:
+  issues: write
+
 jobs:
   zap:
     runs-on: ubuntu-latest
