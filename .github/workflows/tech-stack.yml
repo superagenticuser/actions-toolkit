@@ -18,7 +18,7 @@ jobs:
           HDR=$(curl -sI --max-time 20 "$U")
           BODY=$(curl -s --max-time 20 -L "$U" | head -c 60000)
           {
-            echo "## 🔎 Tech stack — \`$U\`"
+            echo "## 🔎 Tech stack - \`$U\`"
             echo ""
             detect() { grep -qiE "$1" <<< "$2" && echo "- $3"; return 0; }
             detect "wp-content|wp-includes" "$BODY" "WordPress"
