@@ -27,8 +27,8 @@ jobs:
             fi
           done < <(find "${{ inputs.path }}" -name '*.js' -not -path '*/node_modules/*' -not -path './.git/*')
           if [ "$FAIL" -eq 1 ]; then
-            echo "## 🔎 JS syntax check — FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo "## 🔎 JS syntax check - FAILED" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
           COUNT=$(find "${{ inputs.path }}" -name '*.js' -not -path '*/node_modules/*' -not -path './.git/*' | wc -l)
-          echo "## 🔎 JS syntax check — ✅ ${COUNT} files OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 🔎 JS syntax check - ✅ ${COUNT} files OK" >> "$GITHUB_STEP_SUMMARY"

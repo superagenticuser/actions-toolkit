@@ -26,7 +26,7 @@ jobs:
               0) echo "Clear sky";; 1|2|3) echo "Partly cloudy";; 45|48) echo "Foggy";;
               51|53|55) echo "Drizzle";; 61|63|65) echo "Rain";; 71|73|75|77) echo "Snow";;
               80|81|82) echo "Showers";; 95) echo "Thunderstorm";; 96|99) echo "Storm + hail";;
-              *) echo "—";;
+              *) echo "-";;
             esac
           }
           CUR_T=$(jq -r '.current.temperature_2m' <<< "$FC")

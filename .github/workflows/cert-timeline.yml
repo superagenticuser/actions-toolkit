@@ -23,7 +23,7 @@ jobs:
             echo "## 🔍 Certificate timeline: $D"
             echo ""
             if [ -z "$JSON" ] || ! jq -e . > /dev/null 2>&1 <<< "$JSON"; then
-              echo "⚠️ crt.sh is unreachable right now — re-run this workflow later."
+              echo "⚠️ crt.sh is unreachable right now - re-run this workflow later."
               echo ""
               echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
               exit 0

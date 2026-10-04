@@ -20,7 +20,7 @@ jobs:
             -E 'TODO|FIXME|HACK|XXX' "${{ inputs.path }}" > todos.txt || true
           N=$(wc -l < todos.txt)
           {
-            echo "## 📝 TODO report — ${N} markers"
+            echo "## 📝 TODO report - ${N} markers"
             echo ""
             echo '```'
             head -100 todos.txt

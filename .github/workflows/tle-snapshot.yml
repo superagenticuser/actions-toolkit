@@ -18,7 +18,7 @@ jobs:
               -o "tle-cache/${GROUP}.tle"
           done
           {
-            echo "## 🛰 TLE snapshot — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "## 🛰 TLE snapshot - $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo ""
             for f in tle-cache/*.tle; do
               N=$(grep -c '^1 ' "$f" || true)

@@ -27,7 +27,7 @@ jobs:
                         ([.labels[].name] | join(";")), .createdAt, (.closedAt // ""), .url]) | @csv' \
             > issues.csv
           N=$(($(wc -l < issues.csv) - 1))
-          echo "## 📋 Issue exporter — ${N} issues (${{ inputs.state }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📋 Issue exporter - ${N} issues (${{ inputs.state }})" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:

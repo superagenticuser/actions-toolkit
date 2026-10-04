@@ -34,7 +34,7 @@ jobs:
             echo "**Top repos by stars:**"
             echo '```'
             curl -s --max-time 20 "https://api.github.com/users/${U}/repos?per_page=100" \
-              | jq -r 'sort_by(.stargazers_count) | reverse | .[0:8][] | "\(.stargazers_count)★  \(.name) — \(.description // "" | .[0:60])"' \
+              | jq -r 'sort_by(.stargazers_count) | reverse | .[0:8][] | "\(.stargazers_count)★  \(.name) - \(.description // "" | .[0:60])"' \
               | head -8
             echo '```'
             echo ""

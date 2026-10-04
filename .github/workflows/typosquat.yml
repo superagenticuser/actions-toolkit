@@ -59,7 +59,7 @@ jobs:
           {
             TOTAL=$(wc -l <<< "$VARIANTS" | tr -d ' ')
             if [ -z "$HIT" ]; then
-              echo "Checked **$TOTAL** variants — none resolve. Clean. 🎉"
+              echo "Checked **$TOTAL** variants - none resolve. Clean. 🎉"
             else
               echo "Checked **$TOTAL** variants. **Registered lookalikes found:**"
               echo "$HIT"

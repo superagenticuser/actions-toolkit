@@ -16,7 +16,7 @@ jobs:
           LIMIT="${{ inputs.limit }}"
           IDS=$(curl -s --max-time 20 "https://hacker-news.firebaseio.com/v0/topstories.json" | jq -r ".[0:${LIMIT}] | join(\" \")")
           {
-            echo "## 📰 Tech briefing — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "## 📰 Tech briefing - $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo ""
           } > briefing.md
           n=0
@@ -28,7 +28,7 @@ jobs:
             SCORE=$(jq -r '.score' <<< "$ITEM")
             CMT=$(jq -r '.descendants // 0' <<< "$ITEM")
             [ -z "$URL" ] && URL="https://news.ycombinator.com/item?id=${id}"
-            echo "${n}. [${TITLE}](${URL}) — ${SCORE} pts, [${CMT} comments](https://news.ycombinator.com/item?id=${id})" >> briefing.md
+            echo "${n}. [${TITLE}](${URL}) - ${SCORE} pts, [${CMT} comments](https://news.ycombinator.com/item?id=${id})" >> briefing.md
           done
           cat briefing.md >> "$GITHUB_STEP_SUMMARY"
 

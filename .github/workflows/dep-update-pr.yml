@@ -20,7 +20,7 @@ jobs:
       - name: Bump dependencies
         run: |
           if [ ! -f package.json ]; then
-            echo "No package.json — nothing to do."
+            echo "No package.json - nothing to do."
             exit 0
           fi
           npx --yes npm-check-updates -u

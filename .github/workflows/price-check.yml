@@ -7,7 +7,7 @@ on:
         description: "Coin id (bitcoin, ethereum, solana…)"
         default: "bitcoin"
       vs:
-        description: "Currency (usd, eur, mur… — unsupported ones auto-convert via USD)"
+        description: "Currency (usd, eur, mur… - unsupported ones auto-convert via USD)"
         default: "usd"
 
 jobs:

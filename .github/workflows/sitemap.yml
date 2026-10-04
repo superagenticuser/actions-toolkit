@@ -52,7 +52,7 @@ jobs:
           xml.append('</urlset>')
           open('sitemap.xml', 'w').write('\n'.join(xml))
           open(os.environ['GITHUB_STEP_SUMMARY'], 'a').write(
-              f"## 🕸️ Sitemap — {len(pages)} pages found\n\nCrawled `{start}` (same domain only).\n")
+              f"## 🕸️ Sitemap - {len(pages)} pages found\n\nCrawled `{start}` (same domain only).\n")
           print(f'{len(pages)} pages')
           EOF
 

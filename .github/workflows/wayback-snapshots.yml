@@ -30,8 +30,8 @@ jobs:
             fmt() { date -u -d "${1:0:4}-${1:4:2}-${1:6:2} ${1:8:2}:${1:10:2}:${1:12:2}" '+%Y-%m-%d' 2>/dev/null || echo "$1"; }
             echo "**$COUNT** snapshots archived."
             echo ""
-            echo "- First capture: $(fmt "$FIRST") — https://web.archive.org/web/${FIRST}/$(jq -r '.[1][1]' <<< "$J")"
-            echo "- Latest capture: $(fmt "$LAST") — https://web.archive.org/web/${LAST}/$(jq -r '.[-1][1]' <<< "$J")"
+            echo "- First capture: $(fmt "$FIRST") - https://web.archive.org/web/${FIRST}/$(jq -r '.[1][1]' <<< "$J")"
+            echo "- Latest capture: $(fmt "$LAST") - https://web.archive.org/web/${LAST}/$(jq -r '.[-1][1]' <<< "$J")"
             echo ""
             echo "**Sample captures across the years:**"
             echo '```'

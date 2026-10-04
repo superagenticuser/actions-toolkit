@@ -76,8 +76,8 @@ jobs:
           }
 
           const compass = a => ['N','NE','E','SE','S','SW','W','NW'][Math.round(a * R2D / 45) % 8];
-          let md = `## 🛰 ISS passes — lat ${process.env.LAT}, lon ${process.env.LON} (next ${days}d)\n\n`;
-          md += '_Radio-visible passes (peaking above 10°). Optical visibility needs darkness — check local sunset._\n\n';
+          let md = `## 🛰 ISS passes - lat ${process.env.LAT}, lon ${process.env.LON} (next ${days}d)\n\n`;
+          md += '_Radio-visible passes (peaking above 10°). Optical visibility needs darkness - check local sunset._\n\n';
           if (!passes.length) {
             md += 'No high passes in this window.\n';
           } else {

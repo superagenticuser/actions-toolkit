@@ -37,6 +37,6 @@ jobs:
           else
             echo "## ⚠️ ntfy.sh unreachable after 3 attempts" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "The notification was **not** delivered — ntfy.sh did not respond." >> "$GITHUB_STEP_SUMMARY"
+            echo "The notification was **not** delivered - ntfy.sh did not respond." >> "$GITHUB_STEP_SUMMARY"
             echo "Your topic (\`${{ inputs.topic }}\`) is still valid; re-run this workflow when the service is back." >> "$GITHUB_STEP_SUMMARY"
           fi

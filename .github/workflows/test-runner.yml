@@ -20,7 +20,7 @@ jobs:
             npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
             npm test
           else
-            echo "No test script — skipping."
+            echo "No test script - skipping."
           fi
 
       - name: pytest (if present)

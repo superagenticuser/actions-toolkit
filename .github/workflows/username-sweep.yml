@@ -15,13 +15,13 @@ jobs:
         run: |
           U="${{ inputs.username }}"
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-          check() { # $1 label $2 url — 404/410 means free, 200/301/302 means taken
+          check() { # $1 label $2 url - 404/410 means free, 200/301/302 means taken
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -A "$UA" -L --max-redirs 2 "$2")
             case "$code" in
-              404|410) echo "- 🆓 **$1** — available ($code)" ;;
-              200|301|302) echo "- 🔒 **$1** — taken ($code)" ;;
-              429) echo "- ⏳ **$1** — rate-limited" ;;
-              *) echo "- ❓ **$1** — unclear (HTTP $code)" ;;
+              404|410) echo "- 🆓 **$1** - available ($code)" ;;
+              200|301|302) echo "- 🔒 **$1** - taken ($code)" ;;
+              429) echo "- ⏳ **$1** - rate-limited" ;;
+              *) echo "- ❓ **$1** - unclear (HTTP $code)" ;;
             esac
           }
           {
@@ -43,7 +43,7 @@ jobs:
             check "Vimeo"       "https://vimeo.com/${U}"
             check "SoundCloud"  "https://soundcloud.com/${U}"
             echo ""
-            echo "_Heuristic: 404 = free, 200/redirect = taken. Some sites block bots — treat ❓/⏳ as unverified._"
+            echo "_Heuristic: 404 = free, 200/redirect = taken. Some sites block bots - treat ❓/⏳ as unverified._"
             echo ""
             echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
           } >> "$GITHUB_STEP_SUMMARY"

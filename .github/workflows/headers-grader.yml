@@ -28,7 +28,7 @@ jobs:
               fi
             done
             echo ""
-            if [ "$score" -ge 5 ]; then G="A — solid"; elif [ "$score" -ge 4 ]; then G="B — decent"; elif [ "$score" -ge 2 ]; then G="C — gaps"; else G="F — exposed"; fi
+            if [ "$score" -ge 5 ]; then G="A - solid"; elif [ "$score" -ge 4 ]; then G="B - decent"; elif [ "$score" -ge 2 ]; then G="C - gaps"; else G="F - exposed"; fi
             echo "**Grade: $G** ($score/6 headers present)"
             echo ""
             echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"

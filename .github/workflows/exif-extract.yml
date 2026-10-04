@@ -32,7 +32,7 @@ jobs:
             echo '```'
             echo ""
             if exiftool -GPSLatitude /tmp/img 2>/dev/null | grep -q ':'; then
-              echo "⚠️ **This image contains GPS coordinates** — location is embedded."
+              echo "⚠️ **This image contains GPS coordinates** - location is embedded."
             else
               echo "No GPS coordinates embedded."
             fi

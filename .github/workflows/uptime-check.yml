@@ -18,7 +18,7 @@ jobs:
         run: |
           FAIL=0
           {
-            echo "## 🌐 Uptime check — $(date -u '+%H:%M UTC')"
+            echo "## 🌐 Uptime check - $(date -u '+%H:%M UTC')"
             echo ""
             echo "| URL | Status | Time | Result |"
             echo "|-----|--------|------|--------|"

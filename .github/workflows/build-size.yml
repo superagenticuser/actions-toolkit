@@ -22,11 +22,11 @@ jobs:
 
       - name: Build and measure
         run: |
-          if [ ! -f package.json ]; then echo "No package.json — nothing to build."; exit 0; fi
+          if [ ! -f package.json ]; then echo "No package.json - nothing to build."; exit 0; fi
           npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
           ${{ inputs.build_command }}
           {
-            echo "## 📉 Build size — \`${{ inputs.output_dir }}/\`"
+            echo "## 📉 Build size - \`${{ inputs.output_dir }}/\`"
             echo ""
             echo '```'
             du -sh "${{ inputs.output_dir }}"/*

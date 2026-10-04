@@ -47,7 +47,7 @@ jobs:
           plt.savefig('chart.png', dpi=150)
           print('chart.png written')
           EOF
-          echo "## 📊 Chart rendered — \`${{ inputs.title }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📊 Chart rendered - \`${{ inputs.title }}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:

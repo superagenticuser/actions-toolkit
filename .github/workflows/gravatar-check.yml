@@ -22,12 +22,12 @@ jobs:
             echo ""
             echo "- MD5: \`$HASH\`"
             if [ "$CODE" = "200" ]; then
-              echo "- 🖼️ **Avatar exists** — https://www.gravatar.com/avatar/${HASH}?s=400"
+              echo "- 🖼️ **Avatar exists** - https://www.gravatar.com/avatar/${HASH}?s=400"
             else
               echo "- No custom avatar (HTTP $CODE)"
             fi
             if [ "$PROF" = "200" ]; then
-              echo "- 👤 **Public profile exists** — https://www.gravatar.com/${HASH}"
+              echo "- 👤 **Public profile exists** - https://www.gravatar.com/${HASH}"
               echo '```'
               curl -s --max-time 15 "https://www.gravatar.com/${HASH}.json" | jq -r '.entry[0] | "name: \(.displayName // .preferredUsername)\nabout: \(.aboutMe // "-")\nurls: \([.urls // [] | .[].value] | join(", "))"'
               echo '```'

@@ -39,7 +39,7 @@ jobs:
             echo "## 🗑️ Workflow run cleanup"
             echo ""
             if [ "${{ inputs.dry_run }}" = "true" ]; then
-              echo "**Dry run** — ${DELETED} runs would be deleted (older than ${{ inputs.older_than_days }} days)."
+              echo "**Dry run** - ${DELETED} runs would be deleted (older than ${{ inputs.older_than_days }} days)."
             else
               echo "Deleted **${DELETED}** runs older than ${{ inputs.older_than_days }} days."
             fi

@@ -29,7 +29,7 @@ jobs:
               const exp = new Date(pl.exp * 1000);
               md += `\nExpires: ${exp.toISOString()} (${exp > new Date() ? 'valid' : '⚠️ EXPIRED'})\n`;
             }
-            md += '\n_Heads up: this only decodes — it does not verify the signature._\n';
+            md += '\n_Heads up: this only decodes - it does not verify the signature._\n';
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
           } catch (e) {
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## 🔓 JWT decoder\n\n❌ ${e.message}\n`);
