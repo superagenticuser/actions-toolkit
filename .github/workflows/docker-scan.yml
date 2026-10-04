@@ -23,7 +23,7 @@ jobs:
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
+            aquasec/trivy:0.66.0 image \
             --severity HIGH,CRITICAL --format table --no-progress \
             scan-target 2>&1 | tee trivy.txt | head -60
           {

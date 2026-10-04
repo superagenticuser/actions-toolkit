@@ -30,11 +30,11 @@ jobs:
           git fetch --tags origin
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
           if [ -n "$PREV" ]; then
-            NOTES=$(git log "${PREV}..${TAG}" --pretty=format:'- %s (%h)')
+            git log "${PREV}..${TAG}" --pretty=format:'- %s (%h)' > notes.md
           else
-            NOTES=$(git log "${TAG}" --pretty=format:'- %s (%h)' | head -50)
+            git log "${TAG}" --pretty=format:'- %s (%h)' | head -50 > notes.md
           fi
-          ARGS="--title ${TAG} --notes ${NOTES}"
+          ARGS="--title $TAG --notes-file notes.md"
           [ "${{ inputs.prerelease }}" = "true" ] && ARGS="$ARGS --prerelease"
           # shellcheck disable=SC2086
           gh release create "$TAG" $ARGS

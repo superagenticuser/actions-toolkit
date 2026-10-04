@@ -20,7 +20,7 @@ jobs:
           {
             echo "## 🔎 Tech stack — \`$U\`"
             echo ""
-            detect() { grep -qi "$1" <<< "$2" && echo "- $3"; }
+            detect() { grep -qiE "$1" <<< "$2" && echo "- $3"; }
             detect "wp-content|wp-includes" "$BODY" "WordPress"
             detect "_next/static" "$BODY" "Next.js"
             detect "cdn.shopify.com|myshopify" "$BODY" "Shopify"
@@ -38,7 +38,7 @@ jobs:
             detect "gatsby" "$BODY" "Gatsby"
             detect "cloudflare" "$HDR" "Cloudflare (CDN)"
             detect "x-vercel-id" "$HDR" "Vercel (hosting)"
-            detect "x-nf-request-id\|netlify" "$HDR" "Netlify (hosting)"
+            detect "x-nf-request-id|netlify" "$HDR" "Netlify (hosting)"
             detect "akamai" "$HDR" "Akamai (CDN)"
             detect "x-powered-by:.*php\|.php" "$BODY$HDR" "PHP"
             detect "x-powered-by:.*asp" "$HDR" "ASP.NET"

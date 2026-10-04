@@ -20,7 +20,8 @@ jobs:
   og:
     runs-on: ubuntu-latest
     steps:
-      - uses: browser-actions/setup-chrome@latest
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
 
       - uses: actions/setup-node@v4
         with:
