@@ -70,6 +70,23 @@ Open the repo's **Actions tab**, pick a workflow, hit **Run workflow**, fill in 
 | 🌐 Uptime check          | `uptime-check.yml`   | Status + response time for URL list      | urls                  |
 | 📣 ntfy notifier         | `ntfy.yml`           | Push notification to your phone          | topic, message, title |
 
+## OSINT recon
+
+| Workflow              | File                  | What it does                                | Inputs   |
+| --------------------- | --------------------- | ------------------------------------------- | -------- |
+| 🔍 WHOIS lookup       | `whois-lookup.yml`    | Domain registration details                 | domain   |
+| 🔍 Subdomain enum     | `subdomain-enum.yml`  | Discover subdomains of a domain             | domain   |
+| 🔍 DNS deep-dive      | `dns-deepdive.yml`    | Full DNS record inspection                  | domain   |
+| 🔍 Cert timeline      | `cert-timeline.yml`   | TLS certificate history for a domain        | domain   |
+| 🔍 Wayback snapshots  | `wayback-snapshots.yml` | Archived snapshots from the Wayback Machine | url      |
+| 🔍 IP intel           | `ip-intel.yml`        | Geolocation and network info for an IP      | target   |
+| 🔍 Security headers   | `headers-grader.yml`  | Grade a site's HTTP security headers        | url      |
+| 🔍 Typosquat detector | `typosquat.yml`       | Find lookalike domains                      | domain   |
+| 🔍 GitHub recon       | `github-recon.yml`    | Public profile intel for a GitHub user      | username |
+| 🔍 Username sweep     | `username-sweep.yml`  | Check a handle across many sites            | username |
+| 🔍 EXIF extractor     | `exif-extract.yml`    | Photo metadata from an image URL            | image_url |
+| 🔍 Gravatar check     | `gravatar-check.yml`  | See if an email has a Gravatar profile      | email    |
+
 ## Create & look up
 
 | Workflow                  | File                    | What it does                             | Inputs                 |
