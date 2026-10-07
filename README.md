@@ -22,6 +22,7 @@ Open the repo's **Actions tab**, pick a workflow, hit **Run workflow**, fill in 
 | 💰 Crypto price check   | `price-check.yml`    | Price, 24h change, market cap (CoinGecko)                       | coin, vs                  |
 | 💾 Repo backup          | `repo-backup.yml`    | Zips any public repo into a downloadable artifact               | repo                      |
 | 🛰 TLE snapshot          | `tle-snapshot.yml`   | Downloads CelesTrak TLE sets as an offline cache                | -                         |
+| 🎬 Blender render farm | `blender-render.yml` | Renders a Blender scene's frames in parallel across runners, stitches to MP4 (needs `blender-scenes/`) | scene, frame_start, frame_end, jobs, blender_version, ntfy_topic |
 
 ## Code health
 
