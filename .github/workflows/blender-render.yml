@@ -14,7 +14,7 @@ on:
         default: "72"
       jobs:
         description: "Parallel render jobs (frame chunks)"
-        default: "4"
+        default: "8"
       blender_version:
         description: "Blender version"
         default: "4.2.9"
