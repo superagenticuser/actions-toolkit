@@ -77,7 +77,7 @@ jobs:
           fi
           "$DEST/blender" --version | head -1
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libxi6 libxrender1 libsm6 libxfixes3 libxkbcommon0
+          sudo apt-get install -y -qq libxi6 libxrender1 libsm6 libxfixes3 libxkbcommon0 libegl1 libgl1 libglib2.0-0 libxext6 libxxf86vm1
 
       - name: Render frames ${{ matrix.chunk.start }}-${{ matrix.chunk.end }}
         env:
