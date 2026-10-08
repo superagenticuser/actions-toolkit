@@ -109,8 +109,16 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: frames-*
-          path: frames
-          merge-multiple: true
+          path: frames-dl
+
+      - name: Gather frames
+        run: |
+          set -o pipefail
+          mkdir -p frames
+          find frames-dl -type f -name 'frame_*.png' -exec cp -t frames/ {} +
+          count=$(ls frames/frame_*.png | wc -l)
+          echo "gathered $count frames, expected ${{ needs.plan.outputs.total }}"
+          [ "$count" -eq "${{ needs.plan.outputs.total }}" ] || { echo "frame count mismatch"; exit 1; }
 
       - name: Stitch video
         run: |
@@ -121,7 +129,7 @@ jobs:
           VIDEO="${SCENE%.py}.mp4"
           echo "VIDEO=$VIDEO" >> "$GITHUB_ENV"
           ls frames/frame_*.png | wc -l
-          ffmpeg -y -framerate 24 -start_number 1 -i frames/frame_%04d.png \
+          ffmpeg -y -framerate 24 -i frames/frame_%04d.png \
             -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart "$VIDEO"
           ls -lh "$VIDEO"
           {
