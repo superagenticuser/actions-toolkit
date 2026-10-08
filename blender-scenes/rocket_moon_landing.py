@@ -38,7 +38,8 @@ if TEST:
 else:
     scene.frame_start = int(os.environ.get("FRAME_START", "1"))
     scene.frame_end = int(os.environ.get("FRAME_END", "240"))
-    scene.render.filepath = os.path.join(OUT_DIR, "frame_%04d.png" if FARM else "rocket_####.png")
+    # NOTE: Blender uses # (not printf %04d) as the frame-number placeholder.
+    scene.render.filepath = os.path.join(OUT_DIR, "frame_####.png" if FARM else "rocket_####.png")
 scene.render.image_settings.file_format = 'PNG'
 
 # --- world: black space ---
