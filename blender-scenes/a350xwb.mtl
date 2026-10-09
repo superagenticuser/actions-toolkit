@@ -1,0 +1,47 @@
+newmtl M_skin_002
+Kd 1.0000 1.0000 1.0000
+Ks 0.5000 0.5000 0.5000
+Ns 50.0
+d 1.0000
+map_Kd a350xwb.png
+
+newmtl M_Material_007
+Kd 0.1626 0.1626 0.1626
+Ks 0.0000 0.0000 0.0000
+Ns 50.0
+d 0.3232
+map_Kd a350xwb.png
+
+newmtl M_skin_003
+Kd 1.0000 1.0000 1.0000
+Ks 0.0003 0.0003 0.0003
+Ns 50.0
+d 1.0000
+map_Kd a350xwb.png
+
+newmtl M_Material_001
+Kd 0.5757 0.7053 0.8000
+Ks 0.0019 0.0019 0.0019
+Ns 50.0
+d 1.0000
+
+newmtl M_DefaultWhite_014
+Kd 1.0000 0.0000 0.0098
+Ks 0.5000 0.5000 0.5000
+Ns 50.0
+d 1.0000
+
+newmtl M_DefaultWhite_002
+Kd 1.0000 1.0000 1.0000
+Ks 0.2500 0.2500 0.2500
+Ns 50.0
+d 1.0000
+map_Kd landinggear.png
+
+newmtl M_DefaultWhite_006
+Kd 1.0000 1.0000 1.0000
+Ks 0.0000 0.0000 0.0000
+Ns 50.0
+d 1.0000
+map_Kd landinggear.png
+
