@@ -44,7 +44,7 @@ wout = nt.nodes.new('ShaderNodeOutputWorld')
 wbg = nt.nodes.new('ShaderNodeBackground')
 wenv = nt.nodes.new('ShaderNodeTexEnvironment')
 hdri_path = os.environ.get('HDRI_PATH',
-                            os.path.join(here, 'sky.hdr'))
+                            os.path.join(here, '..', 'shared', 'sky.hdr'))
 wenv.image = bpy.data.images.load(hdri_path)
 wbg.inputs['Strength'].default_value = 0.85
 nt.links.new(wenv.outputs['Color'], wbg.inputs['Color'])

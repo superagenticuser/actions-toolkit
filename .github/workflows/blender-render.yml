@@ -126,7 +126,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           SCENE="${{ inputs.scene }}"
-          VIDEO="${SCENE%.py}.mp4"
+          VIDEO="$(basename "${SCENE%.py}").mp4"
           echo "VIDEO=$VIDEO" >> "$GITHUB_ENV"
           ls frames/frame_*.png | wc -l
           ffmpeg -y -framerate 24 -start_number ${{ inputs.frame_start }} -i frames/frame_%04d.png \
